@@ -297,13 +297,10 @@ void main() {
       );
       await settle(tester);
 
-      expect(
-        [
-          for (final view in views.all('CupertinoNativePopupMenuButton'))
-            view.creationArgs('setSemantics')['label'],
-        ],
-        unorderedEquals(['Switch site', 'Menu label', 'Child menu']),
-      );
+      expect([
+        for (final view in views.all('CupertinoNativePopupMenuButton'))
+          view.creationArgs('setSemantics')['label'],
+      ], unorderedEquals(['Switch site', 'Menu label', 'Child menu']));
     }, variant: ios);
 
     testWidgets('child mode uses a transparent native button', (tester) async {
