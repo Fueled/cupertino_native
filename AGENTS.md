@@ -35,7 +35,7 @@ Reusable workflows live in `.claude/skills/` (also symlinked to `.cursor/skills`
 - Format / fix: `dart fix --apply && dart format .`
 - Test: `flutter test`
 - Run the demo app: `cd example && flutter run -d macos` (or an iOS simulator)
-- Compile-check Swift: `cd example && flutter build macos --debug` / `flutter build ios --debug --no-codesign` (Swift Package Manager picks up new Swift files automatically; there is no CocoaPods)
+- Compile-check Swift: `cd example && flutter build macos --debug` / `flutter build ios --debug --no-codesign` (Swift Package Manager and the podspecs both pick up new Swift files automatically)
 - Native integration test: `cd example && flutter test integration_test -d <ios-simulator-id>` and `-d macos`
 - Minimum OS: iOS 18.0, macOS 12.0
 
@@ -46,7 +46,7 @@ Reusable workflows live in `.claude/skills/` (also symlinked to `.cursor/skills`
 - Shared channel helpers (colors, style encoding): `lib/channel/params.dart`
 - Styles / SF Symbols: `lib/style/`
 - Shared Dart host for every component: `lib/channel/native_view_state.dart`
-- iOS native code: Swift package `ios/cupertino_native/` (`Package.swift`; sources in `Sources/cupertino_native/`: `CupertinoNativePlugin.swift`, `Support/` shared host and helpers, `Views/`)
+- iOS native code: Swift package `ios/cupertino_native/` (`Package.swift`, plus `ios/cupertino_native.podspec` for CocoaPods; sources in `Sources/cupertino_native/`: `CupertinoNativePlugin.swift`, `Support/` shared host and helpers, `Views/`)
 - macOS native code: Swift package `macos/cupertino_native/` (same layout as iOS, plus `Shared/` for the SwiftUI switch)
 - Demo app: `example/lib/main.dart` (component list) and `example/lib/demos/`
 - Screenshots for the README: `misc/screenshots/`

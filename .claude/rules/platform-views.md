@@ -21,7 +21,8 @@ both sides; a component only describes its own state and controls.
 
 Native code is one Swift package per platform (`ios/cupertino_native/`,
 `macos/cupertino_native/`; `…` above is `cupertino_native/Sources/cupertino_native`).
-There is no CocoaPods podspec. The packages build separately, so `Support/`
+Each platform also has a podspec (`{ios,macos}/cupertino_native.podspec`) for
+apps that use CocoaPods; it compiles the same sources. The packages build separately, so `Support/`
 exists once per platform. When you change one copy, make the same change in the other.
 
 ## The state contract — CRITICAL
