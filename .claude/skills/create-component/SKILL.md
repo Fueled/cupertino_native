@@ -48,17 +48,17 @@ Ask the user to confirm if any of these are non-obvious.
 ### 2. Export — `lib/cupertino_native.dart`
 Add `export 'components/<name>.dart';` (and any new `style/` file).
 
-### 3. iOS — `ios/Classes/Views/Cupertino<Name>PlatformView.swift`
+### 3. iOS — `ios/cupertino_native/Sources/cupertino_native/Views/Cupertino<Name>PlatformView.swift`
 - `final class Cupertino<Name>PlatformView: NativeView` with
   `override class var viewType: String { "CupertinoNative<Name>" }`.
 - Controls as stored properties; `setUp()` builds the hierarchy;
   `apply(_:_:)` implements every state method; `flush()` if it renders from
   accumulated state.
 - Add `Cupertino<Name>PlatformView.self` to `viewClasses` in
-  `ios/Classes/CupertinoNativePlugin.swift`.
+  `ios/cupertino_native/Sources/cupertino_native/CupertinoNativePlugin.swift`.
 
-### 4. macOS — `macos/Classes/Views/Cupertino<Name>NSView.swift`
-Same as iOS with AppKit, registered in `macos/Classes/CupertinoNativePlugin.swift`.
+### 4. macOS — `macos/cupertino_native/Sources/cupertino_native/Views/Cupertino<Name>NSView.swift`
+Same as iOS with AppKit, registered in `macos/cupertino_native/Sources/cupertino_native/CupertinoNativePlugin.swift`.
 Handle **every** method iOS handles; if one can't apply on macOS, accept it as
 a documented no-op.
 
@@ -87,7 +87,7 @@ invent one. Add a CHANGELOG entry.
 dart format .
 flutter analyze && flutter test
 cd example && flutter analyze && flutter test
-cd example/ios && pod install && cd .. && flutter build macos --debug   # new Swift files need pod install
+cd example && flutter build macos --debug && flutter build ios --debug --no-codesign
 cd example && flutter test integration_test -d <ios-simulator-id>
 cd example && flutter test integration_test -d macos
 ```

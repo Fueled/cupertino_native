@@ -98,7 +98,7 @@ is this branch's commit.
   counterpart file and make sure the resolution is mirrored there.
 - **Registration files** (`CupertinoNativePlugin.swift`, `lib/cupertino_native.dart`,
   `example/lib/main.dart`): both sides usually *add* entries — keep both.
-- `pubspec.lock` / `example/pubspec.lock` / `Podfile.lock`: take the parent's
+- `pubspec.lock` / `example/pubspec.lock`: take the parent's
   version; dependencies are re-resolved in step 5.
 - `pubspec.yaml` version and `CHANGELOG.md`: keep the parent's released version
   and put this branch's changelog lines under the right (unreleased) heading.

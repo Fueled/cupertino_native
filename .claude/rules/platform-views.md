@@ -12,15 +12,17 @@ both sides; a component only describes its own state and controls.
 |-------|-------|
 | Dart host (shared) | `lib/channel/native_view_state.dart` — `NativeViewState` |
 | Dart component | `lib/components/<name>.dart` — `CN<Name>` + `_CN<Name>State extends NativeViewState` |
-| Native host (shared) | `{ios,macos}/Classes/Support/NativeView.swift` — `NativeView`, `NativeViewFactory` |
+| Native host (shared) | `{ios,macos}/cupertino_native/Sources/cupertino_native/Support/NativeView.swift` — `NativeView`, `NativeViewFactory` |
 | Native helpers (shared) | `Support/ChannelArgs.swift`, `Support/SymbolSpec.swift`, `Support/ButtonStyling.swift` |
-| Native component | `ios/Classes/Views/Cupertino<Name>PlatformView.swift`, `macos/Classes/Views/Cupertino<Name>NSView.swift` |
-| Registration | the `viewClasses` list in `{ios,macos}/Classes/CupertinoNativePlugin.swift` |
+| Native component | `ios/…/Views/Cupertino<Name>PlatformView.swift`, `macos/…/Views/Cupertino<Name>NSView.swift` |
+| Registration | the `viewClasses` list in `{ios,macos}/…/CupertinoNativePlugin.swift` |
 | Export | `lib/cupertino_native.dart` |
 | Demo | `example/lib/demos/<name>.dart` + entry in `example/lib/main.dart` |
 
-The iOS and macOS pods build separately, so `Support/` exists once per
-platform. When you change one copy, make the same change in the other.
+Native code is one Swift package per platform (`ios/cupertino_native/`,
+`macos/cupertino_native/`; `…` above is `cupertino_native/Sources/cupertino_native`).
+There is no CocoaPods podspec. The packages build separately, so `Support/`
+exists once per platform. When you change one copy, make the same change in the other.
 
 ## The state contract — CRITICAL
 

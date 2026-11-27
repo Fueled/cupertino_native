@@ -24,10 +24,14 @@ flutter pub add cupertino_native
 
 Then run `flutter pub get`.
 
-Ensure your platform minimums are compatible:
+Requirements:
 
-- iOS 18.0+ (`platform :ios, '18.0'` in your `ios/Podfile`)
-- macOS 12.0+ (`platform :osx, '12.0'` in your `macos/Podfile`)
+- Flutter 3.44+
+- iOS 18.0+ and macOS 12.0+ (the app's deployment target in Xcode)
+- Swift Package Manager. The plugin ships as a Swift package only, with no
+  CocoaPods support. Flutter enables Swift Package Manager by default; if your
+  app turned it off, turn it back on with
+  `flutter config --enable-swift-package-manager`.
 
 Liquid Glass styles and symbol gradients need iOS/macOS 26 at runtime and an app built with Xcode 26 or later. On older systems they fall back to the closest earlier style.
 

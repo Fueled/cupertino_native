@@ -11,14 +11,14 @@ See `.claude/rules/platform-views.md` for how native views connect to Dart.
 ## Formatting
 - 2-space indentation, matching the existing files.
 - One type per file, named after the file (`CupertinoSliderPlatformView.swift`
-  → `class CupertinoSliderPlatformView`); shared helpers live in `Classes/Support/`.
+  → `class CupertinoSliderPlatformView`); shared helpers live in `Support/`.
 - iOS imports: `Flutter`, `UIKit`, `SwiftUI` as needed.
   macOS imports: `Cocoa`, `FlutterMacOS`, `SwiftUI` as needed.
 - Mark view classes `final`.
 
 ## Deployment Targets
-- iOS pod targets **iOS 18.0**; macOS pod targets **macOS 12.0**
-  (`*/cupertino_native.podspec`). Don't add `#available` checks for versions at
+- The iOS package targets **iOS 18.0**; the macOS package targets **macOS 12.0**
+  (`platforms` in `*/cupertino_native/Package.swift`). Don't add `#available` checks for versions at
   or below these.
 - Anything newer must be guarded, with a fallback for older systems.
 - iOS/macOS 26 APIs (Liquid Glass, symbol gradients) also need a compile-time
@@ -34,7 +34,7 @@ See `.claude/rules/platform-views.md` for how native views connect to Dart.
 - Prefer the UIKit/AppKit control (`UISwitch`, `NSSlider`, `UISegmentedControl`):
   programmatic changes don't fire actions, so nothing is echoed to Dart.
 - Use SwiftUI only when AppKit/UIKit can't do the job (e.g. tinting a macOS
-  switch). Put the view + `ObservableObject` model in `Classes/Shared/`, host it
+  switch). Put the view + `ObservableObject` model in `Shared/`, host it
   with `NSHostingView`/`UIHostingController`, and suppress echoes of
   Dart-set values (see `SwitchModel`).
 
