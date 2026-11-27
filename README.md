@@ -90,9 +90,10 @@ CNButton(
   onPressed: () {},
 )
 
-// Icon button variant
+// Icon button variant. Give icon-only buttons a label for VoiceOver.
 CNButton.icon(
   icon: const CNSymbol('heart.fill'),
+  semanticLabel: 'Like',
   onPressed: () {},
 )
 ```
@@ -130,6 +131,14 @@ CNPopupMenuButton.label(
   onSelected: (index) {
     // Handle selection
   },
+)
+
+// Icon-only variant, labelled for VoiceOver
+CNPopupMenuButton.icon(
+  buttonIcon: const CNSymbol('ellipsis'),
+  semanticLabel: 'More options',
+  items: items,
+  onSelected: (index) {},
 )
 ```
 

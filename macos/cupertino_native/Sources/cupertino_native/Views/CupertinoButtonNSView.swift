@@ -30,6 +30,9 @@ final class CupertinoButtonNSView: NativeView {
       )
     case "setEnabled":
       button.isEnabled = try args.required("enabled", args.bool)
+    case "setSemantics":
+      // nil restores AppKit's default label (the title).
+      button.setAccessibilityLabel(args.string("label"))
     case "setPressed":
       alphaValue = try args.required("pressed", args.bool) ? 0.7 : 1.0
     case "getIntrinsicSize":

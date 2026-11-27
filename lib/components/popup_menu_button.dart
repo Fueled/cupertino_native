@@ -58,6 +58,7 @@ class CNPopupMenuButton extends StatefulWidget {
     required this.items,
     required this.onSelected,
     this.tint,
+    this.semanticLabel,
   }) : buttonLabel = null,
        buttonIcon = null,
        width = null,
@@ -76,6 +77,7 @@ class CNPopupMenuButton extends StatefulWidget {
     this.height = 32.0,
     this.shrinkWrap = false,
     this.buttonStyle = CNButtonStyle.plain,
+    this.semanticLabel,
   }) : child = null,
        buttonIcon = null,
        width = null,
@@ -90,6 +92,7 @@ class CNPopupMenuButton extends StatefulWidget {
     this.tint,
     double size = 44.0,
     this.buttonStyle = CNButtonStyle.glass,
+    this.semanticLabel,
   }) : child = null,
        buttonLabel = null,
        round = true,
@@ -132,6 +135,13 @@ class CNPopupMenuButton extends StatefulWidget {
 
   /// Visual style to apply to the button.
   final CNButtonStyle buttonStyle;
+
+  /// Label read by VoiceOver and other assistive technologies.
+  ///
+  /// Set this for icon-only and [child] buttons, which have no text for the
+  /// native control to read. When null, the native control's default label is
+  /// used (its title, if any).
+  final String? semanticLabel;
 
   /// Whether this instance is configured as an icon button variant.
   bool get isIconButton => buttonIcon != null;
@@ -181,6 +191,7 @@ class _CNPopupMenuButtonState extends NativeViewState<CNPopupMenuButton> {
           },
       ],
     },
+    'setSemantics': {'label': widget.semanticLabel},
   };
 
   @override
@@ -216,7 +227,18 @@ class _CNPopupMenuButtonState extends NativeViewState<CNPopupMenuButton> {
   @override
   Widget buildFallback(BuildContext context) {
     if (widget.hasChild) {
-      return GestureDetector(onTap: _showFallbackMenu, child: widget.child);
+      final child = GestureDetector(
+        onTap: _showFallbackMenu,
+        child: widget.child,
+      );
+      if (widget.semanticLabel == null) return child;
+      return Semantics(
+        label: widget.semanticLabel,
+        button: true,
+        onTap: _showFallbackMenu,
+        excludeSemantics: true,
+        child: child,
+      );
     }
     return SizedBox(
       height: widget.height,
@@ -226,9 +248,13 @@ class _CNPopupMenuButtonState extends NativeViewState<CNPopupMenuButton> {
             ? const EdgeInsets.all(4)
             : const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         onPressed: _showFallbackMenu,
-        child: widget.isIconButton
-            ? Icon(CupertinoIcons.ellipsis, size: widget.buttonIcon?.size)
-            : Text(widget.buttonLabel ?? ''),
+        child: Semantics(
+          label: widget.semanticLabel,
+          excludeSemantics: widget.semanticLabel != null,
+          child: widget.isIconButton
+              ? Icon(CupertinoIcons.ellipsis, size: widget.buttonIcon?.size)
+              : Text(widget.buttonLabel ?? ''),
+        ),
       ),
     );
   }

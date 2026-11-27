@@ -51,6 +51,9 @@ final class CupertinoPopupMenuButtonPlatformView: NativeView {
     case "setItems":
       entries = args.argsList("items").map(MenuEntry.init)
       needsMenu = true
+    case "setSemantics":
+      // nil restores UIKit's default label (the title).
+      button.accessibilityLabel = args.string("label")
     case "setPressed":
       button.isHighlighted = try args.required("pressed", args.bool)
     case "getIntrinsicSize":

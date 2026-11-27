@@ -2,6 +2,7 @@
 
 * CocoaPods is supported again alongside Swift Package Manager, for apps that have Swift Package Manager turned off.
 * Lowers the minimum iOS version to 17.0. The plugin uses no iOS 18 APIs.
+* Adds `semanticLabel` to `CNButton` and `CNPopupMenuButton`. It sets the native control's accessibility label, so icon-only buttons can be read by VoiceOver, and labels the Flutter fallback.
 
 ## 0.2.0
 

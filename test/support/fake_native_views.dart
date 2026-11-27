@@ -41,6 +41,12 @@ class FakeNativeViews {
   /// The only created view of [viewType].
   FakeNativeView single(String viewType) =>
       _views.values.singleWhere((view) => view.viewType == viewType);
+
+  /// Every created view of [viewType], in creation order.
+  List<FakeNativeView> all(String viewType) => [
+    for (final view in _views.values)
+      if (view.viewType == viewType) view,
+  ]..sort((a, b) => a.id.compareTo(b.id));
 }
 
 /// One fake native view and the calls it received.

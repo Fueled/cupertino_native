@@ -30,6 +30,9 @@ final class CupertinoButtonPlatformView: NativeView {
       needsConfiguration = true
     case "setEnabled":
       button.isEnabled = try args.required("enabled", args.bool)
+    case "setSemantics":
+      // nil restores UIKit's default label (the title).
+      button.accessibilityLabel = args.string("label")
     case "setPressed":
       button.isHighlighted = try args.required("pressed", args.bool)
     case "getIntrinsicSize":
