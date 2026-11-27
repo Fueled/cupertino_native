@@ -26,6 +26,7 @@ class CNButton extends StatefulWidget {
     this.style = CNButtonStyle.plain,
     this.semanticLabel,
   }) : icon = null,
+       fallbackIcon = null,
        width = null,
        round = false;
 
@@ -39,6 +40,7 @@ class CNButton extends StatefulWidget {
     double size = 44.0,
     this.style = CNButtonStyle.glass,
     this.semanticLabel,
+    this.fallbackIcon,
   }) : label = null,
        round = true,
        width = size,
@@ -51,6 +53,12 @@ class CNButton extends StatefulWidget {
 
   /// Button icon (non-null in icon mode).
   final CNSymbol? icon;
+
+  /// Icon drawn by the Flutter fallback in icon mode, where SF Symbols are
+  /// unavailable (non-Apple platforms and widget tests).
+  ///
+  /// Defaults to [CupertinoIcons.ellipsis] when null.
+  final IconData? fallbackIcon;
 
   /// Callback when pressed.
   final VoidCallback? onPressed;
@@ -135,7 +143,10 @@ class _CNButtonState extends NativeViewState<CNButton> {
           label: widget.semanticLabel,
           excludeSemantics: widget.semanticLabel != null,
           child: widget.isIcon
-              ? Icon(CupertinoIcons.ellipsis, size: widget.icon?.size)
+              ? Icon(
+                  widget.fallbackIcon ?? CupertinoIcons.ellipsis,
+                  size: widget.icon?.size,
+                )
               : Text(widget.label ?? ''),
         ),
       ),

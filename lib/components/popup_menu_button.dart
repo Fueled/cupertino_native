@@ -61,6 +61,7 @@ class CNPopupMenuButton extends StatefulWidget {
     this.semanticLabel,
   }) : buttonLabel = null,
        buttonIcon = null,
+       fallbackIcon = null,
        width = null,
        round = false,
        height = null,
@@ -80,6 +81,7 @@ class CNPopupMenuButton extends StatefulWidget {
     this.semanticLabel,
   }) : child = null,
        buttonIcon = null,
+       fallbackIcon = null,
        width = null,
        round = false;
 
@@ -93,6 +95,7 @@ class CNPopupMenuButton extends StatefulWidget {
     double size = 44.0,
     this.buttonStyle = CNButtonStyle.glass,
     this.semanticLabel,
+    this.fallbackIcon,
   }) : child = null,
        buttonLabel = null,
        round = true,
@@ -109,6 +112,12 @@ class CNPopupMenuButton extends StatefulWidget {
 
   /// Icon for the button (non-null in icon mode).
   final CNSymbol? buttonIcon;
+
+  /// Icon drawn by the Flutter fallback in icon mode, where SF Symbols are
+  /// unavailable (non-Apple platforms and widget tests).
+  ///
+  /// Defaults to [CupertinoIcons.ellipsis] when null.
+  final IconData? fallbackIcon;
 
   /// Fixed width in icon mode; otherwise computed/intrinsic.
   final double? width;
@@ -252,7 +261,10 @@ class _CNPopupMenuButtonState extends NativeViewState<CNPopupMenuButton> {
           label: widget.semanticLabel,
           excludeSemantics: widget.semanticLabel != null,
           child: widget.isIconButton
-              ? Icon(CupertinoIcons.ellipsis, size: widget.buttonIcon?.size)
+              ? Icon(
+                  widget.fallbackIcon ?? CupertinoIcons.ellipsis,
+                  size: widget.buttonIcon?.size,
+                )
               : Text(widget.buttonLabel ?? ''),
         ),
       ),

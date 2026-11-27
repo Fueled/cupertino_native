@@ -94,6 +94,7 @@ CNButton(
 CNButton.icon(
   icon: const CNSymbol('heart.fill'),
   semanticLabel: 'Like',
+  fallbackIcon: CupertinoIcons.heart_fill, // drawn on non-Apple platforms
   onPressed: () {},
 )
 ```

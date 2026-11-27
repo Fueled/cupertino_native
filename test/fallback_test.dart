@@ -152,6 +152,50 @@ void main() {
     semantics.dispose();
   }, variant: android);
 
+  testWidgets('icon variants draw fallbackIcon, else an ellipsis', (
+    tester,
+  ) async {
+    const items = [CNPopupMenuItem(label: 'One')];
+    await tester.pumpWidget(
+      app(
+        Column(
+          children: [
+            CNButton.icon(
+              icon: const CNSymbol('gear'),
+              fallbackIcon: CupertinoIcons.settings,
+              onPressed: () {},
+            ),
+            CNPopupMenuButton.icon(
+              buttonIcon: const CNSymbol('globe'),
+              fallbackIcon: CupertinoIcons.globe,
+              items: items,
+              onSelected: (_) {},
+            ),
+          ],
+        ),
+      ),
+    );
+    expect(find.byIcon(CupertinoIcons.settings), findsOneWidget);
+    expect(find.byIcon(CupertinoIcons.globe), findsOneWidget);
+    expect(find.byIcon(CupertinoIcons.ellipsis), findsNothing);
+
+    await tester.pumpWidget(
+      app(
+        Column(
+          children: [
+            CNButton.icon(icon: const CNSymbol('gear'), onPressed: () {}),
+            CNPopupMenuButton.icon(
+              buttonIcon: const CNSymbol('globe'),
+              items: items,
+              onSelected: (_) {},
+            ),
+          ],
+        ),
+      ),
+    );
+    expect(find.byIcon(CupertinoIcons.ellipsis), findsNWidgets(2));
+  }, variant: android);
+
   testWidgets('popup menu falls back to an action sheet', (tester) async {
     int? selected;
     await tester.pumpWidget(
