@@ -2,42 +2,24 @@ import Flutter
 import UIKit
 
 public class CupertinoNativePlugin: NSObject, FlutterPlugin {
+  /// Every platform view the plugin provides. Adding a component means adding
+  /// its view class here; the view type comes from the class.
+  private static let viewClasses: [NativeView.Type] = [
+    CupertinoButtonPlatformView.self,
+    CupertinoIconPlatformView.self,
+    CupertinoPopupMenuButtonPlatformView.self,
+    CupertinoSegmentedControlPlatformView.self,
+    CupertinoSliderPlatformView.self,
+    CupertinoSwitchPlatformView.self,
+    CupertinoTabBarPlatformView.self,
+  ]
+
   public static func register(with registrar: FlutterPluginRegistrar) {
-    let channel = FlutterMethodChannel(name: "cupertino_native", binaryMessenger: registrar.messenger())
-    let instance = CupertinoNativePlugin()
-    registrar.addMethodCallDelegate(instance, channel: channel)
-
-    // Register platform view factories
-    let sliderFactory = CupertinoSliderViewFactory(messenger: registrar.messenger())
-    registrar.register(sliderFactory, withId: "CupertinoNativeSlider")
-
-    let switchFactory = CupertinoSwitchViewFactory(messenger: registrar.messenger())
-    registrar.register(switchFactory, withId: "CupertinoNativeSwitch")
-
-    // Segmented control
-    let segmentedFactory = CupertinoSegmentedControlViewFactory(messenger: registrar.messenger())
-    registrar.register(segmentedFactory, withId: "CupertinoNativeSegmentedControl")
-
-    let iconFactory = CupertinoIconViewFactory(messenger: registrar.messenger())
-    registrar.register(iconFactory, withId: "CupertinoNativeIcon")
-
-    let tabBarFactory = CupertinoTabBarViewFactory(messenger: registrar.messenger())
-    registrar.register(tabBarFactory, withId: "CupertinoNativeTabBar")
-
-    let popupMenuFactory = CupertinoPopupMenuButtonViewFactory(messenger: registrar.messenger())
-    registrar.register(popupMenuFactory, withId: "CupertinoNativePopupMenuButton")
-
-    let buttonFactory = CupertinoButtonViewFactory(messenger: registrar.messenger())
-    registrar.register(buttonFactory, withId: "CupertinoNativeButton")
-  }
-
-  public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-    switch call.method {
-    case "getPlatformVersion":
-      result("iOS " + UIDevice.current.systemVersion)
-    default:
-      result(FlutterMethodNotImplemented)
+    for viewClass in viewClasses {
+      registrar.register(
+        NativeViewFactory(viewClass, messenger: registrar.messenger()),
+        withId: viewClass.viewType
+      )
     }
   }
 }
- 

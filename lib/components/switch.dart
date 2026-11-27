@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
+
+import '../channel/native_view_state.dart';
 import '../channel/params.dart';
 
 /// Controller for a [CNSwitch] that allows imperative updates from Dart
@@ -15,8 +15,8 @@ class CNSwitchController {
     _channel = channel;
   }
 
-  void _detach() {
-    _channel = null;
+  void _detach(MethodChannel channel) {
+    if (identical(_channel, channel)) _channel = null;
   }
 
   /// Sets the switch [value]. When [animated] is true the change is animated
@@ -41,7 +41,7 @@ class CNSwitchController {
 /// A Cupertino-native switch rendered by the host platform.
 ///
 /// On iOS/macOS this uses a platform view to embed UISwitch/NSSwitch, and
-/// falls back to Flutter's [Switch] on unsupported platforms.
+/// falls back to [CupertinoSwitch] on unsupported platforms.
 class CNSwitch extends StatefulWidget {
   /// Creates a Cupertino-native switch.
   const CNSwitch({
@@ -76,200 +76,82 @@ class CNSwitch extends StatefulWidget {
   State<CNSwitch> createState() => _CNSwitchState();
 }
 
-class _CNSwitchState extends State<CNSwitch> {
-  MethodChannel? _channel;
-
-  bool? _lastValue;
-  bool? _lastEnabled;
-  bool? _lastIsDark;
-  int? _lastTint;
-  int _pendingToggleId = 0;
-  bool get _isDark => CupertinoTheme.of(context).brightness == Brightness.dark;
-
-  CNSwitchController? _internalController;
-
-  CNSwitchController get _controller =>
-      widget.controller ?? (_internalController ??= CNSwitchController());
-
-  Color? get _effectiveColor =>
-      widget.color ?? CupertinoTheme.of(context).primaryColor;
+class _CNSwitchState extends NativeViewState<CNSwitch> {
+  @override
+  String get viewType => 'CupertinoNativeSwitch';
 
   @override
-  void dispose() {
-    _channel?.setMethodCallHandler(null);
-    _controller._detach();
-    super.dispose();
+  NativeState describeNativeState(BuildContext context) => {
+    'setValue': {'value': widget.value},
+    'setEnabled': {'enabled': widget.enabled},
+    'setStyle': {
+      'tint': resolveColorToArgb(
+        widget.color ?? CupertinoTheme.of(context).primaryColor,
+        context,
+      ),
+    },
+  };
+
+  @override
+  Set<Factory<OneSequenceGestureRecognizer>> get gestureRecognizers => {
+    Factory<HorizontalDragGestureRecognizer>(
+      () => HorizontalDragGestureRecognizer(),
+    ),
+    Factory<TapGestureRecognizer>(() => TapGestureRecognizer()),
+  };
+
+  @override
+  Widget buildFallback(BuildContext context) {
+    return SizedBox(
+      height: widget.height,
+      child: CupertinoSwitch(
+        value: widget.value,
+        activeTrackColor: widget.color,
+        onChanged: widget.enabled ? widget.onChanged : null,
+      ),
+    );
+  }
+
+  @override
+  Widget layoutNativeView(BuildContext context, Widget platformView) {
+    // Platform views expand to fill unbounded axes (e.g. inside a Row), so
+    // give the view a finite width from the native switch's ~51x31pt aspect
+    // ratio. The native control is centered inside it.
+    return SizedBox(
+      height: widget.height,
+      width: widget.height * 51.0 / 31.0,
+      child: platformView,
+    );
+  }
+
+  @override
+  void didCreateNativeView(MethodChannel channel) {
+    widget.controller?._attach(channel);
   }
 
   @override
   void didUpdateWidget(covariant CNSwitch oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _syncPropsToNativeIfNeeded();
+    final channel = nativeChannel;
+    if (channel != null && oldWidget.controller != widget.controller) {
+      oldWidget.controller?._detach(channel);
+      widget.controller?._attach(channel);
+    }
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _syncBrightnessIfNeeded();
+  void dispose() {
+    final channel = nativeChannel;
+    if (channel != null) widget.controller?._detach(channel);
+    super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    // Fallback to Flutter Switch on unsupported platforms.
-    if (!(defaultTargetPlatform == TargetPlatform.iOS ||
-        defaultTargetPlatform == TargetPlatform.macOS)) {
-      return SizedBox(
-        height: widget.height,
-        child: Switch(
-          value: widget.value,
-          onChanged: widget.enabled ? widget.onChanged : null,
-        ),
-      );
-    }
-
-    const viewType = 'CupertinoNativeSwitch';
-    // Platform views expand to the biggest size in unconstrained axes.
-    // When placed in a Row, width can be unconstrained which would cause
-    // the platform view to try to expand to Infinity. Provide a finite
-    // width based on the native switch aspect ratio to avoid layout
-    // assertions in such cases.
-    double estimatedWidthFor(double height) {
-      // Approximate iOS UISwitch size is 51x31pt => ~1.645 aspect ratio.
-      const ratio = 51.0 / 31.0;
-      return height * ratio;
-    }
-
-    final double width = estimatedWidthFor(widget.height);
-    final creationParams = <String, dynamic>{
-      'value': widget.value,
-      'enabled': widget.enabled,
-      'isDark': _isDark,
-      'style': encodeStyle(context, tint: _effectiveColor),
-    };
-
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      return SizedBox(
-        height: widget.height,
-        width: width,
-        child: UiKitView(
-          viewType: viewType,
-          creationParamsCodec: const StandardMessageCodec(),
-          creationParams: creationParams,
-          onPlatformViewCreated: _onPlatformViewCreated,
-          gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-            Factory<HorizontalDragGestureRecognizer>(
-              () => HorizontalDragGestureRecognizer(),
-            ),
-            Factory<TapGestureRecognizer>(() => TapGestureRecognizer()),
-          },
-        ),
-      );
-    }
-
-    // macOS
-    return SizedBox(
-      height: widget.height,
-      width: width,
-      child: AppKitView(
-        viewType: viewType,
-        creationParamsCodec: const StandardMessageCodec(),
-        creationParams: creationParams,
-        onPlatformViewCreated: _onPlatformViewCreated,
-        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-          Factory<HorizontalDragGestureRecognizer>(
-            () => HorizontalDragGestureRecognizer(),
-          ),
-          Factory<TapGestureRecognizer>(() => TapGestureRecognizer()),
-        },
-      ),
-    );
-  }
-
-  void _onPlatformViewCreated(int id) {
-    final channel = MethodChannel('CupertinoNativeSwitch_$id');
-    _channel = channel;
-    _controller._attach(channel);
-    channel.setMethodCallHandler(_onMethodCall);
-    _cacheCurrentProps();
-    _syncBrightnessIfNeeded();
-  }
-
-  Future<dynamic> _onMethodCall(MethodCall call) async {
-    if (call.method == 'valueChanged') {
-      final args = call.arguments as Map?;
-      final value = args?['value'] as bool?;
-      if (value != null) {
-        final int toggleId = ++_pendingToggleId;
-        widget.onChanged(value);
-        // Ensure we get a frame even if setState is not called.
-        SchedulerBinding.instance.scheduleFrame();
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          if (_pendingToggleId != toggleId) return;
-          final channel = _channel;
-          if (channel == null) return;
-          if (widget.value != value) {
-            channel.invokeMethod('setValue', {
-              'value': widget.value,
-              'animated': true,
-            });
-          } else {
-            _lastValue = widget.value;
-          }
-        });
-      }
-    }
-    return null;
-  }
-
-  void _cacheCurrentProps() {
-    _lastValue = widget.value;
-    _lastEnabled = widget.enabled;
-    _lastIsDark = _isDark;
-    _lastTint = resolveColorToArgb(_effectiveColor, context);
-  }
-
-  Future<void> _syncPropsToNativeIfNeeded() async {
-    final channel = _channel;
-    if (channel == null) return;
-
-    // Resolve theme-dependent values before awaiting.
-    final int? tint = resolveColorToArgb(_effectiveColor, context);
-
-    if (_lastEnabled != widget.enabled) {
-      await channel.invokeMethod('setEnabled', {'enabled': widget.enabled});
-      _lastEnabled = widget.enabled;
-    }
-
-    if (_lastValue != widget.value) {
-      await channel.invokeMethod('setValue', {
-        'value': widget.value,
-        'animated': false,
-      });
-      _lastValue = widget.value;
-    }
-
-    // Style updates (e.g., tint color)
-    if (_lastTint != tint && tint != null) {
-      await channel.invokeMethod('setStyle', {'tint': tint});
-      _lastTint = tint;
-    }
-  }
-
-  Future<void> _syncBrightnessIfNeeded() async {
-    final channel = _channel;
-    if (channel == null) return;
-    final isDark = _isDark;
-    final int? tint = resolveColorToArgb(_effectiveColor, context);
-
-    if (_lastIsDark != isDark) {
-      await channel.invokeMethod('setBrightness', {'isDark': isDark});
-      _lastIsDark = isDark;
-    }
-
-    if (_lastTint != tint && tint != null) {
-      await channel.invokeMethod('setStyle', {'tint': tint});
-      _lastTint = tint;
+  void handleNativeEvent(String method, Map<Object?, Object?> args) {
+    final value = args['value'];
+    if (method == 'valueChanged' && value is bool) {
+      recordNativeState('setValue', {'value': value});
+      widget.onChanged(value);
     }
   }
 }

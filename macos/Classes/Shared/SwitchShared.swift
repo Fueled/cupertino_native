@@ -1,48 +1,46 @@
 import SwiftUI
 
+/// SwiftUI is used for the macOS switch because AppKit's `NSSwitch` can't be
+/// tinted.
 struct CupertinoSwitchView: View {
   @ObservedObject var model: SwitchModel
 
   var body: some View {
-    let base = Toggle("", isOn: $model.value)
+    Toggle("", isOn: $model.value)
       .labelsHidden()
-      .disabled(!model.enabled)
-      .onChange(of: model.value) { newValue in
-        model.handleChange(newValue)
-      }
       .toggleStyle(.switch)
-
-    if #available(macOS 12.0, *) {
-      base.tint(model.tintColor)
-    } else {
-      base.accentColor(model.tintColor)
-    }
+      .disabled(!model.enabled)
+      .tint(model.tint)
+      .onChange(of: model.value) { newValue in
+        model.valueDidChange(newValue)
+      }
   }
 }
 
-class SwitchModel: ObservableObject {
-  @Published var value: Bool
-  @Published var enabled: Bool
-  @Published var tintColor: Color = .accentColor
-  var onChange: (Bool) -> Void
-  private var suppressChangeCallback = false
+final class SwitchModel: ObservableObject {
+  @Published var value = false
+  @Published var enabled = true
+  @Published var tint: Color?
 
-  init(value: Bool, enabled: Bool, onChange: @escaping (Bool) -> Void) {
-    self.value = value
-    self.enabled = enabled
-    self.onChange = onChange
-  }
+  /// Called when the user toggles the switch.
+  var onUserChange: (Bool) -> Void = { _ in }
 
-  func handleChange(_ newValue: Bool) {
-    if suppressChangeCallback {
-      return
-    }
-    onChange(newValue)
-  }
+  /// A value set from Dart whose `onChange` hasn't fired yet. SwiftUI reports
+  /// changes asynchronously, so a flag cleared right after assignment would
+  /// be gone by then; instead the pending value is matched and consumed.
+  private var pendingDartValue: Bool?
 
-  func setValueFromDart(_ newValue: Bool) {
-    suppressChangeCallback = true
+  func setFromDart(_ newValue: Bool) {
+    guard newValue != value else { return }
+    pendingDartValue = newValue
     value = newValue
-    suppressChangeCallback = false
+  }
+
+  func valueDidChange(_ newValue: Bool) {
+    if let pending = pendingDartValue {
+      pendingDartValue = nil
+      if pending == newValue { return }
+    }
+    onUserChange(newValue)
   }
 }

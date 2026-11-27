@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import '../channel/native_view_state.dart';
 import '../channel/params.dart';
 import '../style/sf_symbol.dart';
 
@@ -50,253 +50,120 @@ class CNTabBar extends StatefulWidget {
   /// Background color for the bar.
   final Color? backgroundColor;
 
-  /// Default icon size when item icon does not specify one.
+  /// Overrides the icon size of every item.
   final double? iconSize;
 
   /// Fixed height; if null uses intrinsic height reported by native view.
   final double? height;
 
-  /// When true, splits items between left and right sections.
+  /// When true, splits items between left and right sections. iOS only; on
+  /// macOS all items render in a single group.
   final bool split;
 
   /// How many trailing items to pin right when [split] is true.
-  final int rightCount; // how many trailing items to pin right when split
-  /// When true, centers the split groups more tightly.
+  final int rightCount;
+
+  /// When true and [split] is false, sizes the bar to its intrinsic width
+  /// instead of filling the available width.
   final bool shrinkCentered;
 
   /// Gap between left/right halves when split.
-  final double splitSpacing; // gap between left/right halves when split
+  final double splitSpacing;
 
   @override
   State<CNTabBar> createState() => _CNTabBarState();
 }
 
-class _CNTabBarState extends State<CNTabBar> {
-  MethodChannel? _channel;
-  int? _lastIndex;
-  int? _lastTint;
-  int? _lastBg;
-  bool? _lastIsDark;
+class _CNTabBarState extends NativeViewState<CNTabBar> {
   double? _intrinsicHeight;
   double? _intrinsicWidth;
-  List<String>? _lastLabels;
-  List<String>? _lastSymbols;
-  bool? _lastSplit;
-  int? _lastRightCount;
-  double? _lastSplitSpacing;
-
-  bool get _isDark => CupertinoTheme.of(context).brightness == Brightness.dark;
-  Color? get _effectiveTint =>
-      widget.tint ?? CupertinoTheme.of(context).primaryColor;
 
   @override
-  void didUpdateWidget(covariant CNTabBar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _syncPropsToNativeIfNeeded();
-  }
+  String get viewType => 'CupertinoNativeTabBar';
 
   @override
-  void dispose() {
-    _channel?.setMethodCallHandler(null);
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!(defaultTargetPlatform == TargetPlatform.iOS ||
-        defaultTargetPlatform == TargetPlatform.macOS)) {
-      // Simple Flutter fallback using CupertinoTabBar for non-Apple platforms.
-      return SizedBox(
-        height: widget.height,
-        child: CupertinoTabBar(
-          items: [
-            for (final item in widget.items)
-              BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.circle),
-                label: item.label,
-              ),
-          ],
-          currentIndex: widget.currentIndex,
-          onTap: widget.onTap,
-          backgroundColor: widget.backgroundColor,
-          inactiveColor: CupertinoColors.inactiveGray,
-          activeColor: widget.tint ?? CupertinoTheme.of(context).primaryColor,
-        ),
-      );
-    }
-
-    final labels = widget.items.map((e) => e.label ?? '').toList();
-    final symbols = widget.items.map((e) => e.icon?.name ?? '').toList();
-    final sizes = widget.items
-        .map((e) => (widget.iconSize ?? e.icon?.size))
-        .toList();
-    final colors = widget.items
-        .map((e) => resolveColorToArgb(e.icon?.color, context))
-        .toList();
-
-    final creationParams = <String, dynamic>{
-      'labels': labels,
-      'sfSymbols': symbols,
-      'sfSymbolSizes': sizes,
-      'sfSymbolColors': colors,
-      'selectedIndex': widget.currentIndex,
-      'isDark': _isDark,
+  NativeState describeNativeState(BuildContext context) => {
+    'setItems': {
+      'items': [
+        for (final item in widget.items)
+          {
+            'label': item.label,
+            'symbol': item.icon?.encode(context, size: widget.iconSize),
+          },
+      ],
+    },
+    'setLayout': {
       'split': widget.split,
       'rightCount': widget.rightCount,
       'splitSpacing': widget.splitSpacing,
-      'style': encodeStyle(context, tint: _effectiveTint)
-        ..addAll({
-          if (widget.backgroundColor != null)
-            'backgroundColor': resolveColorToArgb(
-              widget.backgroundColor,
-              context,
+    },
+    'setSelectedIndex': {'index': widget.currentIndex},
+    'setStyle': {
+      'tint': resolveColorToArgb(
+        widget.tint ?? CupertinoTheme.of(context).primaryColor,
+        context,
+      ),
+      'backgroundColor': resolveColorToArgb(widget.backgroundColor, context),
+    },
+  };
+
+  @override
+  Widget buildFallback(BuildContext context) {
+    return SizedBox(
+      height: widget.height,
+      child: CupertinoTabBar(
+        items: [
+          for (final item in widget.items)
+            BottomNavigationBarItem(
+              icon: const Icon(CupertinoIcons.circle),
+              label: item.label,
             ),
-        }),
-    };
-
-    final viewType = 'CupertinoNativeTabBar';
-    final platformView = defaultTargetPlatform == TargetPlatform.iOS
-        ? UiKitView(
-            viewType: viewType,
-            creationParams: creationParams,
-            creationParamsCodec: const StandardMessageCodec(),
-            onPlatformViewCreated: _onCreated,
-          )
-        : AppKitView(
-            viewType: viewType,
-            creationParams: creationParams,
-            creationParamsCodec: const StandardMessageCodec(),
-            onPlatformViewCreated: _onCreated,
-          );
-
-    final h = widget.height ?? _intrinsicHeight ?? 50.0;
-    if (!widget.split && widget.shrinkCentered) {
-      final w = _intrinsicWidth;
-      return SizedBox(height: h, width: w, child: platformView);
-    }
-    return SizedBox(height: h, child: platformView);
-  }
-
-  void _onCreated(int id) {
-    final ch = MethodChannel('CupertinoNativeTabBar_$id');
-    _channel = ch;
-    ch.setMethodCallHandler(_onMethodCall);
-    _lastIndex = widget.currentIndex;
-    _lastTint = resolveColorToArgb(_effectiveTint, context);
-    _lastBg = resolveColorToArgb(widget.backgroundColor, context);
-    _lastIsDark = _isDark;
-    _requestIntrinsicSize();
-    _cacheItems();
-    _lastSplit = widget.split;
-    _lastRightCount = widget.rightCount;
-    _lastSplitSpacing = widget.splitSpacing;
-  }
-
-  Future<dynamic> _onMethodCall(MethodCall call) async {
-    if (call.method == 'valueChanged') {
-      final args = call.arguments as Map?;
-      final idx = (args?['index'] as num?)?.toInt();
-      if (idx != null && idx != _lastIndex) {
-        widget.onTap(idx);
-        _lastIndex = idx;
-      }
-    }
-    return null;
-  }
-
-  Future<void> _syncPropsToNativeIfNeeded() async {
-    final ch = _channel;
-    if (ch == null) return;
-    // Capture theme-dependent values before awaiting
-    final idx = widget.currentIndex;
-    final tint = resolveColorToArgb(_effectiveTint, context);
-    final bg = resolveColorToArgb(widget.backgroundColor, context);
-    if (_lastIndex != idx) {
-      await ch.invokeMethod('setSelectedIndex', {'index': idx});
-      _lastIndex = idx;
-    }
-
-    final style = <String, dynamic>{};
-    if (_lastTint != tint && tint != null) {
-      style['tint'] = tint;
-      _lastTint = tint;
-    }
-    if (_lastBg != bg && bg != null) {
-      style['backgroundColor'] = bg;
-      _lastBg = bg;
-    }
-    if (style.isNotEmpty) {
-      await ch.invokeMethod('setStyle', style);
-    }
-
-    // Items update (for hot reload or dynamic changes)
-    final labels = widget.items.map((e) => e.label ?? '').toList();
-    final symbols = widget.items.map((e) => e.icon?.name ?? '').toList();
-    if (_lastLabels?.join('|') != labels.join('|') ||
-        _lastSymbols?.join('|') != symbols.join('|')) {
-      await ch.invokeMethod('setItems', {
-        'labels': labels,
-        'sfSymbols': symbols,
-        'selectedIndex': widget.currentIndex,
-      });
-      _lastLabels = labels;
-      _lastSymbols = symbols;
-      // Re-measure width in case content changed
-      _requestIntrinsicSize();
-    }
-
-    // Layout updates (split / insets)
-    if (_lastSplit != widget.split ||
-        _lastRightCount != widget.rightCount ||
-        _lastSplitSpacing != widget.splitSpacing) {
-      await ch.invokeMethod('setLayout', {
-        'split': widget.split,
-        'rightCount': widget.rightCount,
-        'splitSpacing': widget.splitSpacing,
-        'selectedIndex': widget.currentIndex,
-      });
-      _lastSplit = widget.split;
-      _lastRightCount = widget.rightCount;
-      _lastSplitSpacing = widget.splitSpacing;
-      _requestIntrinsicSize();
-    }
+        ],
+        currentIndex: widget.currentIndex,
+        onTap: widget.onTap,
+        backgroundColor: widget.backgroundColor,
+        inactiveColor: CupertinoColors.inactiveGray,
+        activeColor: widget.tint ?? CupertinoTheme.of(context).primaryColor,
+      ),
+    );
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _syncBrightnessIfNeeded();
-    _syncPropsToNativeIfNeeded();
+  Widget layoutNativeView(BuildContext context, Widget platformView) {
+    final height = widget.height ?? _intrinsicHeight ?? 50.0;
+    final width = !widget.split && widget.shrinkCentered
+        ? _intrinsicWidth
+        : null;
+    return SizedBox(height: height, width: width, child: platformView);
   }
 
-  Future<void> _syncBrightnessIfNeeded() async {
-    final ch = _channel;
-    if (ch == null) return;
-    final isDark = _isDark;
-    if (_lastIsDark != isDark) {
-      await ch.invokeMethod('setBrightness', {'isDark': isDark});
-      _lastIsDark = isDark;
+  @override
+  void didCreateNativeView(MethodChannel channel) => _measure();
+
+  @override
+  void didSendNativeUpdates(Set<String> methods) {
+    if (methods.contains('setItems') || methods.contains('setLayout')) {
+      _measure();
     }
   }
 
-  void _cacheItems() {
-    _lastLabels = widget.items.map((e) => e.label ?? '').toList();
-    _lastSymbols = widget.items.map((e) => e.icon?.name ?? '').toList();
+  Future<void> _measure() async {
+    final size = await measureNativeView();
+    if (size == null) return;
+    setState(() {
+      if (size.height > 0) _intrinsicHeight = size.height;
+      if (size.width > 0) _intrinsicWidth = size.width;
+    });
   }
 
-  Future<void> _requestIntrinsicSize() async {
-    if (widget.height != null) return;
-    final ch = _channel;
-    if (ch == null) return;
-    try {
-      final size = await ch.invokeMethod<Map>('getIntrinsicSize');
-      final h = (size?['height'] as num?)?.toDouble();
-      final w = (size?['width'] as num?)?.toDouble();
-      if (!mounted) return;
-      setState(() {
-        if (h != null && h > 0) _intrinsicHeight = h;
-        if (w != null && w > 0) _intrinsicWidth = w;
-      });
-    } catch (_) {}
+  @override
+  void handleNativeEvent(String method, Map<Object?, Object?> args) {
+    final index = (args['index'] as num?)?.toInt();
+    if (method == 'valueChanged' &&
+        index != null &&
+        index != widget.currentIndex) {
+      recordNativeState('setSelectedIndex', {'index': index});
+      widget.onTap(index);
+    }
   }
 }
