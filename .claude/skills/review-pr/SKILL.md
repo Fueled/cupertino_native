@@ -138,7 +138,7 @@ Manual check still needed: run the demo on iOS + macOS, light/dark.
 ✗ <check> failed — see output above
 
 Issues found:
-- [PARITY] macos/Classes/Views/CupertinoSliderNSView.swift: setStep not handled
+- [PARITY] macos/cupertino_native/Sources/cupertino_native/Views/CupertinoSliderNSView.swift: setStep not handled
 - [CHANNEL] lib/components/stepper.dart:140: viewType 'CupertinoNativeSteper' ≠ 'CupertinoNativeStepper'
 - [API] lib/components/stepper.dart:22: public field `step` has no doc comment
 ```

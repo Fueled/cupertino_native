@@ -131,7 +131,7 @@ git push -u origin HEAD
 - A single file may contain changes belonging to different logical commits — stage only what belongs.
 - Keep the Dart, iOS, macOS, and demo changes for one component change in the **same**
   commit — they only work together.
-- Don't commit build output (`example/build/`, `.dart_tool/`, `Pods/`) or
+- Don't commit build output (`example/build/`, `.dart_tool/`, `.build/`, `Flutter/ephemeral/`) or
   unrelated `pubspec.lock` / Xcode project churn.
 
 ---
