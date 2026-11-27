@@ -66,7 +66,8 @@ mismatch compiles fine and fails at runtime.
   - State: `setValue {value}`, `setRange {min, max}`, `setStep {step}`,
     `setEnabled {enabled}`, `setStyle {tint, ...}`, `setItems {...}`,
     `setSelectedIndex {index}`, `setContent {title, symbol}`, `setSymbol {symbol}`,
-    `setLayout {...}`.
+    `setLayout {...}`, `setSemantics {label}` (accessibility label; null restores
+    the control's default).
   - Commands (not state, sent with `sendNativeCommand`): `setPressed {pressed}`.
   - Queries: `getIntrinsicSize` → `{width, height}`.
   - Events (native → Dart): `valueChanged`, `pressed`, `itemSelected`.
