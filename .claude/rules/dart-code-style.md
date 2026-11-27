@@ -34,12 +34,12 @@ The `example/` app is excluded from this lint.
 
 Before adding a helper, search for an existing one and reuse it.
 
-- **Color → native**: `resolveColorToArgb` and `encodeStyle` in
-  `lib/channel/params.dart`. Don't hand-roll ARGB conversion.
+- **Color → native**: `resolveColorToArgb` in `lib/channel/params.dart`.
+  Don't hand-roll ARGB conversion.
+- **Symbol → native**: `CNSymbol.encode(context, ...)` in
+  `lib/channel/params.dart`; pass widget-level overrides as its arguments.
 - **SF Symbols**: `CNSymbol` and `CNSymbolRenderingMode` in `lib/style/sf_symbol.dart`.
 - **Button styles**: `lib/style/button_style.dart`.
-- If a new style key is needed by several components, add it to `encodeStyle`
-  rather than encoding it locally.
 
 If you suspect a helper already exists but aren't sure it fits, STOP and ask
 before building a new one.
@@ -52,7 +52,8 @@ before building a new one.
   `CNPopupMenuButton.icon`) over boolean mode flags.
 - Expose imperative control through an optional `CN<Name>Controller` whose
   methods no-op when no channel is attached.
-- Keep channel plumbing (`MethodChannel`, `_last*` caches) private to the `State`.
+- Components extend `NativeViewState` and leave channel plumbing to it (see
+  `.claude/rules/platform-views.md`).
 - Export every new public file from `lib/cupertino_native.dart`.
 
 ## Widget Method Naming

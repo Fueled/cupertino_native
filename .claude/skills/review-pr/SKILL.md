@@ -84,7 +84,7 @@ re-read the output — report from the Bash tool result directly."
 - **Agent B — Test**: `flutter test` from the project root. Report pass/fail, test
   counts, and failures.
 - **Agent C — Native build** (only if Swift changed): from `example/`, run
-  `flutter build macos --debug` and then `flutter build ios --simulator --debug`.
+  `flutter build macos --debug` and then `flutter build ios --debug --no-codesign`.
   Report pass/fail and any Swift compiler errors with file:line.
 - **Agent D — Diff review**: review `git diff origin/<BASE_BRANCH>...HEAD` against
   `.claude/rules/platform-views.md`, `dart-code-style.md`, and
@@ -97,13 +97,16 @@ re-read the output — report from the Bash tool result directly."
     `lib/cupertino_native.dart`, breaking change to an existing public API
   - `[DEMO]` — new component or property not shown in `example/lib/demos/`, or
     a new demo not linked from `example/lib/main.dart`
-  - `[AVAIL]` — Swift API above iOS 14 / macOS 11 without an `#available` guard
+  - `[AVAIL]` — Swift API above iOS 18 / macOS 12 without an `#available` guard
+    (iOS/macOS 26 APIs also need `#if compiler(>=6.2)`)
   - `[SECRET]` — keys, tokens, signing material
   - `[DEBUG]` — `print()`, `debugPrint()`, Swift `print(`/`NSLog`, commented-out
     code, unowned TODOs
-  - `[BUG]` — `result` not called / called twice, force casts on channel data,
-    missing `mounted` check after `await`, `context` used across an async gap,
-    channel handler not cleared in `dispose`
+  - `[BUG]` — a state method whose args drop keys when null (so the prop can't
+    be cleared), a user change not passed through `recordNativeState`, force
+    casts on channel data, `context` used across an async gap, closures that
+    capture `self` strongly in native views, a component bypassing
+    `NativeViewState` / `NativeView`
   - `[DOCS]` — README/CHANGELOG not updated for a user-visible change
   Report the diff stat and issues grouped by tag with file:line.
 
