@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
   name: "cupertino_native",
   platforms: [
-    .iOS("18.0")
+    .iOS("17.0")
   ],
   products: [
     .library(name: "cupertino-native", targets: ["cupertino_native"])

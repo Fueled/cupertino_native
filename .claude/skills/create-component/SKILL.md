@@ -26,7 +26,7 @@ Throughout, `<Name>` is PascalCase (`DatePicker`) and `<name>` is snake_case
 ### 0. Plan and confirm
 Before writing code, state:
 - The native controls: UIKit (iOS) and AppKit (macOS), with SwiftUI only if
-  AppKit/UIKit can't do it, plus any APIs above iOS 18 / macOS 12 that need
+  AppKit/UIKit can't do it, plus any APIs above iOS 17 / macOS 12 that need
   `#available` guards.
 - The Dart API: constructor params, callbacks, controller methods.
 - The state contract: each `set…` method and its complete args, in order;

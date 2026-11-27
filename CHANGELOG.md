@@ -1,6 +1,7 @@
 ## Unreleased
 
 * CocoaPods is supported again alongside Swift Package Manager, for apps that have Swift Package Manager turned off.
+* Lowers the minimum iOS version to 17.0. The plugin uses no iOS 18 APIs.
 
 ## 0.2.0
 
