@@ -33,6 +33,13 @@ void main() {
     );
 
     expectNoPlatformViews();
+    // No color: the fallback keeps CupertinoSwitch's own default.
+    expect(
+      tester
+          .widget<CupertinoSwitch>(find.byType(CupertinoSwitch))
+          .activeTrackColor,
+      isNull,
+    );
     await tester.tap(find.byType(CupertinoSwitch));
     await tester.drag(find.byType(CupertinoSlider), const Offset(40, 0));
     expect(switched, isTrue);

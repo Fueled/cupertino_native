@@ -42,7 +42,7 @@ void main() {
       'setStyle',
     ]);
     expect(view.creationArgs('setValue'), {'value': true});
-    expect(view.creationArgs('setStyle'), {'tint': 0xFF0000FF});
+    expect(view.creationArgs('setStyle'), {'tint': null});
     // Nothing changed since creation, so nothing is re-sent.
     expect(view.calls, isEmpty);
   }, variant: ios);

@@ -51,6 +51,22 @@ void main() {
     }, variant: ios);
   });
 
+  group('CNSwitch', () {
+    testWidgets('keeps the native tint unless color is set', (tester) async {
+      Widget toggle(Color? color) =>
+          app(CNSwitch(value: true, color: color, onChanged: (_) {}));
+      await tester.pumpWidget(toggle(null));
+      await settle(tester);
+      final view = views.single('CupertinoNativeSwitch');
+      // Not the theme's primary color (0xFF0000FF).
+      expect(view.creationArgs('setStyle'), {'tint': null});
+
+      await tester.pumpWidget(toggle(const Color(0xFFFF0000)));
+      await settle(tester);
+      expect(view.lastArgs('setStyle'), {'tint': 0xFFFF0000});
+    }, variant: ios);
+  });
+
   group('CNSegmentedControl', () {
     testWidgets('updates labels after creation', (tester) async {
       Widget control(List<String> labels) => app(

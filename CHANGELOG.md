@@ -5,6 +5,10 @@
 * Adds `semanticLabel` to `CNButton` and `CNPopupMenuButton`. It sets the native control's accessibility label, so icon-only buttons can be read by VoiceOver, and labels the Flutter fallback.
 * Adds `fallbackIcon` to `CNButton.icon` and `CNPopupMenuButton.icon`. The Flutter fallback (non-Apple platforms and widget tests) draws it instead of an ellipsis.
 
+**Behavior change**
+
+* `CNSwitch` with no `color` now uses the system switch color (green on iOS, the accent color on macOS) instead of the theme's `primaryColor`. Pass `color: CupertinoTheme.of(context).primaryColor` to keep the old look.
+
 ## 0.2.0
 
 **Breaking**
