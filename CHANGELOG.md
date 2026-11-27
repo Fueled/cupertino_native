@@ -1,3 +1,7 @@
+## Unreleased
+
+* CocoaPods is supported again alongside Swift Package Manager, for apps that have Swift Package Manager turned off.
+
 ## 0.2.0
 
 **Breaking**
