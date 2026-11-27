@@ -46,16 +46,16 @@ class _SegmentedControlDemoPageState extends State<SegmentedControlDemoPage> {
               children: [
                 Text('Colored'),
                 Spacer(),
-                Text('Selected: ${_shrinkWrappedSegmentedControlIndex + 1}'),
+                Text('Selected: ${_coloredSegmentedControlIndex + 1}'),
               ],
             ),
             const SizedBox(height: 12),
             CNSegmentedControl(
               labels: const ['One', 'Two', 'Three'],
-              selectedIndex: _shrinkWrappedSegmentedControlIndex,
+              selectedIndex: _coloredSegmentedControlIndex,
               color: CupertinoColors.systemPink,
               onValueChanged: (i) =>
-                  setState(() => _shrinkWrappedSegmentedControlIndex = i),
+                  setState(() => _coloredSegmentedControlIndex = i),
             ),
 
             const SizedBox(height: 48),
@@ -64,15 +64,15 @@ class _SegmentedControlDemoPageState extends State<SegmentedControlDemoPage> {
               children: [
                 Text('Shrink wrap'),
                 Spacer(),
-                Text('Selected: ${_coloredSegmentedControlIndex + 1}'),
+                Text('Selected: ${_shrinkWrappedSegmentedControlIndex + 1}'),
               ],
             ),
             const SizedBox(height: 12),
             CNSegmentedControl(
               labels: const ['One', 'Two', 'Three'],
-              selectedIndex: _coloredSegmentedControlIndex,
+              selectedIndex: _shrinkWrappedSegmentedControlIndex,
               onValueChanged: (i) =>
-                  setState(() => _coloredSegmentedControlIndex = i),
+                  setState(() => _shrinkWrappedSegmentedControlIndex = i),
               shrinkWrap: true,
             ),
 
