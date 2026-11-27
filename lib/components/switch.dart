@@ -70,6 +70,9 @@ class CNSwitch extends StatefulWidget {
   final double height;
 
   /// Optional tint color to apply to the switch.
+  ///
+  /// When null, the system default is used (green on iOS, the accent color on
+  /// macOS, and [CupertinoSwitch]'s default in the fallback).
   final Color? color;
 
   @override
@@ -85,10 +88,8 @@ class _CNSwitchState extends NativeViewState<CNSwitch> {
     'setValue': {'value': widget.value},
     'setEnabled': {'enabled': widget.enabled},
     'setStyle': {
-      'tint': resolveColorToArgb(
-        widget.color ?? CupertinoTheme.of(context).primaryColor,
-        context,
-      ),
+      // Null keeps the system switch color (green on iOS).
+      'tint': resolveColorToArgb(widget.color, context),
     },
   };
 
