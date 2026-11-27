@@ -97,7 +97,7 @@ re-read the output — report from the Bash tool result directly."
     `lib/cupertino_native.dart`, breaking change to an existing public API
   - `[DEMO]` — new component or property not shown in `example/lib/demos/`, or
     a new demo not linked from `example/lib/main.dart`
-  - `[AVAIL]` — Swift API above iOS 18 / macOS 12 without an `#available` guard
+  - `[AVAIL]` — Swift API above iOS 17 / macOS 12 without an `#available` guard
     (iOS/macOS 26 APIs also need `#if compiler(>=6.2)`)
   - `[SECRET]` — keys, tokens, signing material
   - `[DEBUG]` — `print()`, `debugPrint()`, Swift `print(`/`NSLog`, commented-out

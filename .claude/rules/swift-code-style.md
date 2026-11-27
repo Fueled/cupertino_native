@@ -17,7 +17,7 @@ See `.claude/rules/platform-views.md` for how native views connect to Dart.
 - Mark view classes `final`.
 
 ## Deployment Targets
-- The iOS package targets **iOS 18.0**; the macOS package targets **macOS 12.0**
+- The iOS package targets **iOS 17.0**; the macOS package targets **macOS 12.0**
   (`platforms` in `*/cupertino_native/Package.swift` and `s.platform` in
   `*/cupertino_native.podspec`; change both together). Don't add `#available` checks for versions at
   or below these.

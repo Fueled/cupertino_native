@@ -37,7 +37,7 @@ Reusable workflows live in `.claude/skills/` (also symlinked to `.cursor/skills`
 - Run the demo app: `cd example && flutter run -d macos` (or an iOS simulator)
 - Compile-check Swift: `cd example && flutter build macos --debug` / `flutter build ios --debug --no-codesign` (Swift Package Manager and the podspecs both pick up new Swift files automatically)
 - Native integration test: `cd example && flutter test integration_test -d <ios-simulator-id>` and `-d macos`
-- Minimum OS: iOS 18.0, macOS 12.0
+- Minimum OS: iOS 17.0, macOS 12.0
 
 ## Key Files
 
