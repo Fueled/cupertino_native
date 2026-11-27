@@ -3,7 +3,8 @@
 **Breaking**
 
 * Requires iOS 18.0+ and macOS 12.0+ (Xcode 27 can no longer build for the old minimums).
-* Requires Flutter 3.35+.
+* Requires Flutter 3.44+.
+* Distributed as a Swift package only; CocoaPods is no longer supported. Apps must use Swift Package Manager, which Flutter enables by default since 3.44.
 * Removes the unused `CupertinoNative`, `CupertinoNativePlatform` and `MethodChannelCupertinoNative` template classes and the `plugin_platform_interface` dependency.
 * `CNSegmentedControl` icon overrides (`iconSize`, `iconColor`, ...) now take precedence over per-symbol values, as documented.
 
