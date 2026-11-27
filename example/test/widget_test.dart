@@ -1,27 +1,37 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
+import 'package:cupertino_native_example/main.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:cupertino_native_example/main.dart';
-
+/// Runs the demo app on the test platform (no native views), where every
+/// component renders its Flutter fallback.
 void main() {
-  testWidgets('Verify Platform version', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  const demos = [
+    'Slider',
+    'Switch',
+    'Segmented Control',
+    'Icon',
+    'Popup Menu Button',
+    'Button',
+    'Tab Bar',
+  ];
+
+  testWidgets('home page lists every demo', (tester) async {
     await tester.pumpWidget(const MyApp());
 
-    // Verify that platform version is retrieved.
-    expect(
-      find.byWidgetPredicate(
-        (Widget widget) =>
-            widget is Text && widget.data!.startsWith('Running on:'),
-      ),
-      findsOneWidget,
-    );
+    for (final demo in demos) {
+      expect(find.text(demo), findsOneWidget);
+    }
   });
+
+  for (final demo in demos) {
+    testWidgets('$demo demo opens without errors', (tester) async {
+      await tester.pumpWidget(const MyApp());
+
+      await tester.tap(find.text(demo));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CupertinoNavigationBar), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
 }
