@@ -1,24 +1,38 @@
-// This is a basic Flutter integration test.
+// Runs the demo app on a real iOS simulator/device or macOS, where the
+// components are native platform views:
 //
-// Since integration tests run in a full Flutter application, they can interact
-// with the host side of a plugin implementation, unlike Dart unit tests.
-//
-// For more information about Flutter integration tests, please see
-// https://flutter.dev/to/integration-testing
-
-import 'package:flutter_test/flutter_test.dart';
-import 'package:integration_test/integration_test.dart';
+//   cd example && flutter test integration_test -d <device>
 
 import 'package:cupertino_native/cupertino_native.dart';
+import 'package:cupertino_native_example/main.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:integration_test/integration_test.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('getPlatformVersion test', (WidgetTester tester) async {
-    final CupertinoNative plugin = CupertinoNative();
-    final String? version = await plugin.getPlatformVersion();
-    // The version string depends on the host platform running the test, so
-    // just assert that some non-empty string is returned.
-    expect(version?.isNotEmpty, true);
+  testWidgets('every demo page creates its native views', (tester) async {
+    await tester.pumpWidget(const MyApp());
+    await tester.pumpAndSettle();
+
+    for (final (title, component) in [
+      ('Slider', CNSlider),
+      ('Switch', CNSwitch),
+      ('Segmented Control', CNSegmentedControl),
+      ('Icon', CNIcon),
+      ('Popup Menu Button', CNPopupMenuButton),
+      ('Button', CNButton),
+      ('Tab Bar', CNTabBar),
+    ]) {
+      await tester.tap(find.text(title));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(component), findsWidgets, reason: title);
+      expect(tester.takeException(), isNull, reason: title);
+
+      await tester.tap(find.byType(CupertinoNavigationBarBackButton));
+      await tester.pumpAndSettle();
+    }
   });
 }

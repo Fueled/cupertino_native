@@ -1,11 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 
+import '../channel/native_view_state.dart';
 import '../channel/params.dart';
-import '../style/sf_symbol.dart';
+import '../channel/press_listener.dart';
 import '../style/button_style.dart';
+import '../style/sf_symbol.dart';
 
 /// A Cupertino-native push button.
 ///
@@ -43,9 +45,11 @@ class CNButton extends StatefulWidget {
        super();
 
   /// Button text (null in icon mode).
-  final String? label; // null in icon mode
+  final String? label;
+
   /// Button icon (non-null in icon mode).
-  final CNSymbol? icon; // non-null in icon mode
+  final CNSymbol? icon;
+
   /// Callback when pressed.
   final VoidCallback? onPressed;
 
@@ -59,7 +63,8 @@ class CNButton extends StatefulWidget {
   final double height;
 
   /// Fixed width used in icon/round mode.
-  final double? width; // fixed when round/icon mode
+  final double? width;
+
   /// If true, sizes the control to its intrinsic width.
   final bool shrinkWrap;
 
@@ -76,142 +81,67 @@ class CNButton extends StatefulWidget {
   State<CNButton> createState() => _CNButtonState();
 }
 
-class _CNButtonState extends State<CNButton> {
-  MethodChannel? _channel;
-  bool? _lastIsDark;
-  int? _lastTint;
-  String? _lastTitle;
-  String? _lastIconName;
-  double? _lastIconSize;
-  int? _lastIconColor;
+class _CNButtonState extends NativeViewState<CNButton> {
   double? _intrinsicWidth;
-  CNButtonStyle? _lastStyle;
-  Offset? _downPosition;
-  bool _pressed = false;
 
-  bool get _isDark => CupertinoTheme.of(context).brightness == Brightness.dark;
-
-  Color? get _effectiveTint =>
-      widget.tint ?? CupertinoTheme.of(context).primaryColor;
+  bool get _isEnabled => widget.enabled && widget.onPressed != null;
 
   @override
-  void dispose() {
-    _channel?.setMethodCallHandler(null);
-    super.dispose();
-  }
+  String get viewType => 'CupertinoNativeButton';
 
   @override
-  void didUpdateWidget(covariant CNButton oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _syncPropsToNativeIfNeeded();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _syncBrightnessIfNeeded();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!(defaultTargetPlatform == TargetPlatform.iOS ||
-        defaultTargetPlatform == TargetPlatform.macOS)) {
-      // Fallback Flutter implementation
-      return SizedBox(
-        height: widget.height,
-        width: widget.isIcon && widget.round
-            ? (widget.width ?? widget.height)
-            : null,
-        child: CupertinoButton(
-          padding: widget.isIcon
-              ? const EdgeInsets.all(4)
-              : const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          onPressed: (widget.enabled && widget.onPressed != null)
-              ? widget.onPressed
-              : null,
-          child: widget.isIcon
-              ? Icon(CupertinoIcons.ellipsis, size: widget.icon?.size)
-              : Text(widget.label ?? ''),
-        ),
-      );
-    }
-
-    const viewType = 'CupertinoNativeButton';
-
-    final creationParams = <String, dynamic>{
-      if (widget.label != null) 'buttonTitle': widget.label,
-      if (widget.icon != null) 'buttonIconName': widget.icon!.name,
-      if (widget.icon?.size != null) 'buttonIconSize': widget.icon!.size,
-      if (widget.icon?.color != null)
-        'buttonIconColor': resolveColorToArgb(widget.icon!.color, context),
-      if (widget.icon?.mode != null)
-        'buttonIconRenderingMode': widget.icon!.mode!.name,
-      if (widget.icon?.paletteColors != null)
-        'buttonIconPaletteColors': widget.icon!.paletteColors!
-            .map((c) => resolveColorToArgb(c, context))
-            .toList(),
-      if (widget.icon?.gradient != null)
-        'buttonIconGradientEnabled': widget.icon!.gradient,
-      if (widget.isIcon) 'round': true,
+  NativeState describeNativeState(BuildContext context) => {
+    'setContent': {
+      'title': widget.label,
+      'symbol': widget.icon?.encode(context),
+    },
+    'setStyle': {
       'buttonStyle': widget.style.name,
-      'enabled': (widget.enabled && widget.onPressed != null),
-      'isDark': _isDark,
-      'style': encodeStyle(context, tint: _effectiveTint),
-    };
+      'tint': resolveColorToArgb(
+        widget.tint ?? CupertinoTheme.of(context).primaryColor,
+        context,
+      ),
+      'round': widget.round,
+    },
+    'setEnabled': {'enabled': _isEnabled},
+  };
 
-    final platformView = defaultTargetPlatform == TargetPlatform.iOS
-        ? UiKitView(
-            viewType: viewType,
-            creationParams: creationParams,
-            creationParamsCodec: const StandardMessageCodec(),
-            onPlatformViewCreated: _onCreated,
-            gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-              // Forward taps to native; let Flutter keep drags for scrolling.
-              Factory<TapGestureRecognizer>(() => TapGestureRecognizer()),
-            },
-          )
-        : AppKitView(
-            viewType: viewType,
-            creationParams: creationParams,
-            creationParamsCodec: const StandardMessageCodec(),
-            onPlatformViewCreated: _onCreated,
-            gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-              Factory<TapGestureRecognizer>(() => TapGestureRecognizer()),
-            },
-          );
+  @override
+  Set<Factory<OneSequenceGestureRecognizer>> get gestureRecognizers => {
+    // Forward taps to native; let Flutter keep drags for scrolling.
+    Factory<TapGestureRecognizer>(() => TapGestureRecognizer()),
+  };
 
+  @override
+  Widget buildFallback(BuildContext context) {
+    return SizedBox(
+      height: widget.height,
+      width: widget.isIcon ? (widget.width ?? widget.height) : null,
+      child: CupertinoButton(
+        padding: widget.isIcon
+            ? const EdgeInsets.all(4)
+            : const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        onPressed: _isEnabled ? widget.onPressed : null,
+        child: widget.isIcon
+            ? Icon(CupertinoIcons.ellipsis, size: widget.icon?.size)
+            : Text(widget.label ?? ''),
+      ),
+    );
+  }
+
+  @override
+  Widget layoutNativeView(BuildContext context, Widget platformView) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final hasBoundedWidth = constraints.hasBoundedWidth;
-        final preferIntrinsic = widget.shrinkWrap || !hasBoundedWidth;
         double? width;
         if (widget.isIcon) {
           width = widget.width ?? widget.height;
-        } else if (preferIntrinsic) {
+        } else if (widget.shrinkWrap || !constraints.hasBoundedWidth) {
           width = _intrinsicWidth ?? 80.0;
         }
-        return Listener(
-          onPointerDown: (e) {
-            _downPosition = e.position;
-            _setPressed(true);
-          },
-          onPointerMove: (e) {
-            final start = _downPosition;
-            if (start != null && _pressed) {
-              final moved = (e.position - start).distance;
-              if (moved > kTouchSlop) {
-                _setPressed(false);
-              }
-            }
-          },
-          onPointerUp: (_) {
-            _setPressed(false);
-            _downPosition = null;
-          },
-          onPointerCancel: (_) {
-            _setPressed(false);
-            _downPosition = null;
-          },
+        return PressListener(
+          onPressedChanged: (pressed) =>
+              sendNativeCommand('setPressed', {'pressed': pressed}),
           child: SizedBox(
             height: widget.height,
             width: width,
@@ -222,129 +152,25 @@ class _CNButtonState extends State<CNButton> {
     );
   }
 
-  void _onCreated(int id) {
-    final ch = MethodChannel('CupertinoNativeButton_$id');
-    _channel = ch;
-    ch.setMethodCallHandler(_onMethodCall);
-    _lastTint = resolveColorToArgb(_effectiveTint, context);
-    _lastIsDark = _isDark;
-    _lastTitle = widget.label;
-    _lastIconName = widget.icon?.name;
-    _lastIconSize = widget.icon?.size;
-    _lastIconColor = resolveColorToArgb(widget.icon?.color, context);
-    _lastStyle = widget.style;
-    if (!widget.isIcon) {
-      _requestIntrinsicSize();
+  @override
+  void didCreateNativeView(MethodChannel channel) {
+    if (!widget.isIcon) _measure();
+  }
+
+  @override
+  void didSendNativeUpdates(Set<String> methods) {
+    if (!widget.isIcon && methods.contains('setContent')) _measure();
+  }
+
+  Future<void> _measure() async {
+    final size = await measureNativeView();
+    if (size != null && size.width > 0) {
+      setState(() => _intrinsicWidth = size.width);
     }
   }
 
-  Future<dynamic> _onMethodCall(MethodCall call) async {
-    switch (call.method) {
-      case 'pressed':
-        if (widget.enabled && widget.onPressed != null) {
-          widget.onPressed!();
-        }
-        break;
-    }
-    return null;
-  }
-
-  Future<void> _requestIntrinsicSize() async {
-    final ch = _channel;
-    if (ch == null) return;
-    try {
-      final size = await ch.invokeMethod<Map>('getIntrinsicSize');
-      final w = (size?['width'] as num?)?.toDouble();
-      if (w != null && mounted) {
-        setState(() => _intrinsicWidth = w);
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _syncPropsToNativeIfNeeded() async {
-    final ch = _channel;
-    if (ch == null) return;
-    final tint = resolveColorToArgb(_effectiveTint, context);
-    final preIconName = widget.icon?.name;
-    final preIconSize = widget.icon?.size;
-    final preIconColor = resolveColorToArgb(widget.icon?.color, context);
-
-    if (_lastTint != tint && tint != null) {
-      await ch.invokeMethod('setStyle', {'tint': tint});
-      _lastTint = tint;
-    }
-    if (_lastStyle != widget.style) {
-      await ch.invokeMethod('setStyle', {'buttonStyle': widget.style.name});
-      _lastStyle = widget.style;
-    }
-    // Enabled state
-    await ch.invokeMethod('setEnabled', {
-      'enabled': (widget.enabled && widget.onPressed != null),
-    });
-    if (_lastTitle != widget.label && widget.label != null) {
-      await ch.invokeMethod('setButtonTitle', {'title': widget.label});
-      _lastTitle = widget.label;
-      _requestIntrinsicSize();
-    }
-
-    if (widget.isIcon) {
-      final iconName = preIconName;
-      final iconSize = preIconSize;
-      final iconColor = preIconColor;
-      final updates = <String, dynamic>{};
-      if (_lastIconName != iconName && iconName != null) {
-        updates['buttonIconName'] = iconName;
-        _lastIconName = iconName;
-      }
-      if (_lastIconSize != iconSize && iconSize != null) {
-        updates['buttonIconSize'] = iconSize;
-        _lastIconSize = iconSize;
-      }
-      if (_lastIconColor != iconColor && iconColor != null) {
-        updates['buttonIconColor'] = iconColor;
-        _lastIconColor = iconColor;
-      }
-      if (widget.icon?.mode != null) {
-        updates['buttonIconRenderingMode'] = widget.icon!.mode!.name;
-      }
-      if (widget.icon?.paletteColors != null) {
-        updates['buttonIconPaletteColors'] = widget.icon!.paletteColors!
-            .map((c) => resolveColorToArgb(c, context))
-            .toList();
-      }
-      if (widget.icon?.gradient != null) {
-        updates['buttonIconGradientEnabled'] = widget.icon!.gradient;
-      }
-      if (updates.isNotEmpty) {
-        await ch.invokeMethod('setButtonIcon', updates);
-      }
-    }
-  }
-
-  Future<void> _syncBrightnessIfNeeded() async {
-    final ch = _channel;
-    if (ch == null) return;
-    // Capture context-derived values before any awaits
-    final isDark = _isDark;
-    final tint = resolveColorToArgb(_effectiveTint, context);
-    if (_lastIsDark != isDark) {
-      await ch.invokeMethod('setBrightness', {'isDark': isDark});
-      _lastIsDark = isDark;
-    }
-    // Also propagate theme-driven tint changes (e.g., accent color changes)
-    if (_lastTint != tint && tint != null) {
-      await ch.invokeMethod('setStyle', {'tint': tint});
-      _lastTint = tint;
-    }
-  }
-
-  Future<void> _setPressed(bool pressed) async {
-    final ch = _channel;
-    if (ch == null) return;
-    if (_pressed == pressed) return;
-    _pressed = pressed;
-    try {
-      await ch.invokeMethod('setPressed', {'pressed': pressed});
-    } catch (_) {}
+  @override
+  void handleNativeEvent(String method, Map<Object?, Object?> args) {
+    if (method == 'pressed' && _isEnabled) widget.onPressed!();
   }
 }

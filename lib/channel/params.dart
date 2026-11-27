@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 
+import '../style/sf_symbol.dart';
+
 /// Converts a [Color] to ARGB int (0xAARRGGBB). Private helper.
 int? _argbFromColor(Color? color) {
   if (color == null) return null;
@@ -22,27 +24,31 @@ int? resolveColorToArgb(Color? color, BuildContext context) {
   return _argbFromColor(color);
 }
 
-/// Creates a unified style map for platform views.
-/// Keys (all ARGB ints):
-/// - tint: general accent color
-/// - thumbTint: slider/switch thumb color
-/// - trackTint: active track color
-/// - trackBackgroundTint: inactive track color
-Map<String, dynamic> encodeStyle(
-  BuildContext context, {
-  Color? tint,
-  Color? thumbTint,
-  Color? trackTint,
-  Color? trackBackgroundTint,
-}) {
-  final style = <String, dynamic>{};
-  final tintInt = resolveColorToArgb(tint, context);
-  final thumbInt = resolveColorToArgb(thumbTint, context);
-  final trackInt = resolveColorToArgb(trackTint, context);
-  final trackBgInt = resolveColorToArgb(trackBackgroundTint, context);
-  if (tintInt != null) style['tint'] = tintInt;
-  if (thumbInt != null) style['thumbTint'] = thumbInt;
-  if (trackInt != null) style['trackTint'] = trackInt;
-  if (trackBgInt != null) style['trackBackgroundTint'] = trackBgInt;
-  return style;
+/// Wire encoding of a [CNSymbol], decoded natively by `SymbolSpec`.
+extension CNSymbolEncoding on CNSymbol {
+  /// Encodes this symbol for the native side, resolving colors against
+  /// [context].
+  ///
+  /// The optional parameters are widget-level overrides; when non-null they
+  /// win over the symbol's own values.
+  Map<String, Object?> encode(
+    BuildContext context, {
+    double? size,
+    Color? color,
+    List<Color>? paletteColors,
+    CNSymbolRenderingMode? mode,
+    bool? gradient,
+  }) {
+    final palette = paletteColors ?? this.paletteColors;
+    return {
+      'name': name,
+      'size': size ?? this.size,
+      'color': resolveColorToArgb(color ?? this.color, context),
+      'paletteColors': palette
+          ?.map((c) => resolveColorToArgb(c, context))
+          .toList(),
+      'mode': (mode ?? this.mode)?.name,
+      'gradient': gradient ?? this.gradient ?? false,
+    };
+  }
 }

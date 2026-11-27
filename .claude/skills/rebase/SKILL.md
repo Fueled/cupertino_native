@@ -134,7 +134,7 @@ report from the Bash result directly without re-reading output with sed/head/tai
 - **Agent A**: `flutter analyze`
 - **Agent B**: `flutter test`
 - **Agent C** (only if Swift files changed on either side): from `example/`,
-  `flutter build macos --debug` then `flutter build ios --simulator --debug`
+  `flutter build macos --debug` then `flutter build ios --debug --no-codesign`
 
 If anything fails, fix it before declaring success. If the failure comes from the
 parent branch's code rather than this branch, tell the user.

@@ -1,13 +1,14 @@
 ---
 name: create-component
-description: Add a new native component to the plugin end to end — Dart widget, iOS and macOS Swift views, factory registration, export, demo page, and README. Use when asked to add/wrap a new native iOS/macOS control (e.g. date picker, stepper, toolbar).
+description: Add a new native component to the plugin end to end — Dart widget, iOS and macOS Swift views, registration, export, demo page, tests, and README. Use when asked to add/wrap a new native iOS/macOS control (e.g. date picker, stepper, toolbar).
 ---
 
 # Create a New Component
 
 A component is only done when it exists in **all** of the places listed in
 `.claude/rules/platform-views.md` and works on both iOS and macOS. Read that rule
-first, then pick the closest existing component as a template:
+first; it defines the state contract every step below relies on. Then pick the
+closest existing component as a template:
 
 | New control looks like… | Copy from |
 |-------------------------|-----------|
@@ -24,41 +25,42 @@ Throughout, `<Name>` is PascalCase (`DatePicker`) and `<name>` is snake_case
 
 ### 0. Plan and confirm
 Before writing code, state:
-- The native controls used: UIKit/SwiftUI on iOS, AppKit/SwiftUI on macOS, and the
-  minimum OS for any APIs above iOS 14 / macOS 11.
+- The native controls: UIKit (iOS) and AppKit (macOS), with SwiftUI only if
+  AppKit/UIKit can't do it, plus any APIs above iOS 18 / macOS 12 that need
+  `#available` guards.
 - The Dart API: constructor params, callbacks, controller methods.
-- The channel contract: creation params, Dart → native methods, native → Dart events
-  (reuse existing method names — see the rule).
+- The state contract: each `set…` method and its complete args, in order;
+  events (native → Dart); queries (`getIntrinsicSize`). Reuse existing method
+  names (see the rule).
 - The Flutter fallback for other platforms.
 
 Ask the user to confirm if any of these are non-obvious.
 
 ### 1. Dart widget — `lib/components/<name>.dart`
-- `CN<Name>` (`StatefulWidget`), optional `CN<Name>Controller`, private `_CN<Name>State`.
-- Follow the Dart pattern in `platform-views.md`: fallback, creation params with
-  `isDark` + `encodeStyle`, `UiKitView`/`AppKitView`, finite size, `_last*`
-  diffed sync, brightness sync, dispose.
+- `CN<Name>` (`StatefulWidget`), optional `CN<Name>Controller`, and
+  `_CN<Name>State extends NativeViewState<CN<Name>>`.
+- Implement `viewType`, `describeNativeState`, `buildFallback`,
+  `layoutNativeView` (finite size!), and, as needed, `gestureRecognizers`,
+  `handleNativeEvent` (with `recordNativeState` for user changes),
+  `didCreateNativeView`, `didSendNativeUpdates`.
 - `///` docs on every public member (`public_member_api_docs` is enforced).
 
 ### 2. Export — `lib/cupertino_native.dart`
 Add `export 'components/<name>.dart';` (and any new `style/` file).
 
-### 3. iOS — `ios/Classes/`
-- `Factories/Cupertino<Name>Factory.swift` — copy an existing factory; only the
-  class names change.
-- `Views/Cupertino<Name>PlatformView.swift` — `FlutterPlatformView`; channel
-  `"CupertinoNative<Name>_\(viewId)"`; parse args; handle methods; emit events.
-- `Shared/<Name>Shared.swift` — only if the control is SwiftUI-hosted.
-- Register in `CupertinoNativePlugin.swift`:
-  ```swift
-  let <name>Factory = Cupertino<Name>ViewFactory(messenger: registrar.messenger())
-  registrar.register(<name>Factory, withId: "CupertinoNative<Name>")
-  ```
+### 3. iOS — `ios/Classes/Views/Cupertino<Name>PlatformView.swift`
+- `final class Cupertino<Name>PlatformView: NativeView` with
+  `override class var viewType: String { "CupertinoNative<Name>" }`.
+- Controls as stored properties; `setUp()` builds the hierarchy;
+  `apply(_:_:)` implements every state method; `flush()` if it renders from
+  accumulated state.
+- Add `Cupertino<Name>PlatformView.self` to `viewClasses` in
+  `ios/Classes/CupertinoNativePlugin.swift`.
 
-### 4. macOS — `macos/Classes/`
-Same files as iOS, with `Views/Cupertino<Name>NSView.swift` (an `NSView`) and
-`registrar.messenger` (property, not method) in `CupertinoNativePlugin.swift`.
-Copy any `Shared/` file and adjust availability checks and styling for macOS.
+### 4. macOS — `macos/Classes/Views/Cupertino<Name>NSView.swift`
+Same as iOS with AppKit, registered in `macos/Classes/CupertinoNativePlugin.swift`.
+Handle **every** method iOS handles; if one can't apply on macOS, accept it as
+a documented no-op.
 
 ### 5. Demo — `example/lib/demos/<name>.dart`
 - `<Name>DemoPage` in a `CupertinoPageScaffold` with a `CupertinoNavigationBar`
@@ -67,39 +69,41 @@ Copy any `Shared/` file and adjust availability checks and styling for macOS.
 - Show: default, colored/tinted, disabled, and each meaningful variant; display
   the current value so callbacks are visibly working.
 - Add a `CupertinoListTile` in `example/lib/main.dart` under **Components** (or
-  **Navigation**) with a fitting SF Symbol and a `CupertinoPageRoute` to the page,
-  and import the demo file.
+  **Navigation**) with a fitting SF Symbol and a `CupertinoPageRoute` to the page.
+- Add the page to the lists in `example/test/widget_test.dart` and
+  `example/integration_test/plugin_integration_test.dart`.
 
-### 6. Tests — `test/<name>_test.dart`
-Cover fallback rendering, creation params, and channel calls as described in
-`.claude/rules/testing.md`.
+### 6. Tests
+Add a `test/components_test.dart` group (creation args, updates, events) and a
+`test/fallback_test.dart` case. See `.claude/rules/testing.md`.
 
-### 7. README
-Add a section with a usage snippet matching the other components. Ask the user
-for a screenshot (`misc/screenshots/<name-with-dashes>.png`) — don't invent one.
+### 7. README and CHANGELOG
+Add a README section with a usage snippet matching the other components. Ask
+the user for a screenshot (`misc/screenshots/<name-with-dashes>.png`) — don't
+invent one. Add a CHANGELOG entry.
 
 ### 8. Verify
 ```bash
 dart format .
-flutter analyze
-flutter test
-cd example && flutter build macos --debug
-cd example && flutter build ios --simulator --debug
+flutter analyze && flutter test
+cd example && flutter analyze && flutter test
+cd example/ios && pod install && cd .. && flutter build macos --debug   # new Swift files need pod install
+cd example && flutter test integration_test -d <ios-simulator-id>
+cd example && flutter test integration_test -d macos
 ```
-Then ask the user to run the demo on an iOS simulator and macOS, in light and
-dark mode and with a non-default accent color, since native rendering can't be
-checked automatically.
+Then check the demo visually on iOS and macOS, in light and dark mode and with
+a non-default accent color. Native rendering can't be checked automatically.
 
 ## Checklist
 
-- [ ] `lib/components/<name>.dart` with docs on all public members
+- [ ] `lib/components/<name>.dart` extends `NativeViewState`, with docs on all public members
 - [ ] Exported from `lib/cupertino_native.dart`
-- [ ] iOS factory + view (+ shared) + registration
-- [ ] macOS factory + view (+ shared) + registration
-- [ ] View type and channel names identical across Dart / iOS / macOS
-- [ ] Every Dart → native method handled on both platforms
+- [ ] iOS view + `viewClasses` entry
+- [ ] macOS view + `viewClasses` entry
+- [ ] View type and method/arg names identical across Dart / iOS / macOS
+- [ ] Every state method handled on both platforms
 - [ ] Non-Apple fallback
-- [ ] Demo page + home list entry
-- [ ] Tests
-- [ ] README section
-- [ ] `flutter analyze` clean, `flutter test` green, both example builds compile
+- [ ] Demo page + home list entry + example test lists
+- [ ] Component and fallback tests
+- [ ] README section + CHANGELOG entry
+- [ ] Analyze clean, tests green, integration test passes on iOS and macOS

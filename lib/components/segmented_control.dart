@@ -1,7 +1,9 @@
-import 'package:flutter/foundation.dart';
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
+import '../channel/native_view_state.dart';
 import '../channel/params.dart';
 import '../style/sf_symbol.dart';
 
@@ -40,7 +42,7 @@ class CNSegmentedControl extends StatefulWidget {
   /// Whether the control is interactive.
   final bool enabled;
 
-  /// Accent/tint color used for the control.
+  /// Accent/tint color used for the selected segment.
   final Color? color;
 
   /// Control height.
@@ -49,227 +51,120 @@ class CNSegmentedControl extends StatefulWidget {
   /// If true, sizes the control to its intrinsic width.
   final bool shrinkWrap;
 
-  /// Optional SF Symbols for segments; complements [labels].
+  /// Optional SF Symbols for segments; a segment with a symbol shows it
+  /// instead of its label.
   final List<CNSymbol>? sfSymbols;
 
-  /// Overrides the symbol size (for all segments).
+  /// Overrides the symbol size for all segments.
   final double? iconSize;
 
-  /// Global icon color override.
+  /// Overrides the symbol color for all segments.
   final Color? iconColor;
 
-  /// Global icon palette colors override.
+  /// Overrides the symbol palette colors for all segments.
   final List<Color>? iconPaletteColors;
 
-  /// Enables gradient rendering where supported.
+  /// Overrides gradient rendering for all segments (iOS/macOS 26+).
   final bool? iconGradientEnabled;
 
-  /// Global icon rendering mode.
+  /// Overrides the symbol rendering mode for all segments.
   final CNSymbolRenderingMode? iconRenderingMode;
 
   @override
   State<CNSegmentedControl> createState() => _CNSegmentedControlState();
 }
 
-class _CNSegmentedControlState extends State<CNSegmentedControl> {
-  MethodChannel? _channel;
-
-  int? _lastSelected;
-  bool? _lastEnabled;
-  bool? _lastIsDark;
-  int? _lastTint;
+class _CNSegmentedControlState extends NativeViewState<CNSegmentedControl> {
   double? _intrinsicWidth;
 
-  bool get _isDark => CupertinoTheme.of(context).brightness == Brightness.dark;
+  int get _segmentCount =>
+      math.max(widget.labels.length, widget.sfSymbols?.length ?? 0);
 
   @override
-  void dispose() {
-    _channel?.setMethodCallHandler(null);
-    super.dispose();
-  }
+  String get viewType => 'CupertinoNativeSegmentedControl';
 
   @override
-  void didUpdateWidget(covariant CNSegmentedControl oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _syncPropsToNativeIfNeeded();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _syncBrightnessIfNeeded();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!(defaultTargetPlatform == TargetPlatform.iOS ||
-        defaultTargetPlatform == TargetPlatform.macOS)) {
-      return SizedBox(
-        height: widget.height,
-        child: CupertinoSegmentedControl<int>(
-          children: {
-            for (var i = 0; i < widget.labels.length; i++)
-              i: Text(widget.labels[i]),
-          },
-          groupValue: widget.selectedIndex,
-          onValueChanged: widget.enabled
-              ? (i) => widget.onValueChanged(i)
-              : (_) {},
-        ),
-      );
-    }
-
-    const viewType = 'CupertinoNativeSegmentedControl';
-    final creationParams = <String, dynamic>{
+  NativeState describeNativeState(BuildContext context) => {
+    'setItems': {
       'labels': widget.labels,
-      'selectedIndex': widget.selectedIndex,
-      'enabled': widget.enabled,
-      'isDark': _isDark,
-      'style': encodeStyle(context, tint: widget.color)
-        ..addAll({
-          if (widget.iconSize != null) 'iconSize': widget.iconSize,
-          if (widget.iconColor != null)
-            'iconColor': resolveColorToArgb(widget.iconColor, context),
-          if (widget.iconPaletteColors != null)
-            'iconPaletteColors': widget.iconPaletteColors!
-                .map((c) => resolveColorToArgb(c, context))
-                .toList(),
-          if (widget.iconGradientEnabled != null)
-            'iconGradientEnabled': widget.iconGradientEnabled,
-          if (widget.iconRenderingMode != null)
-            'iconRenderingMode': widget.iconRenderingMode!.name,
-        }),
-      if (widget.sfSymbols != null)
-        'sfSymbols': widget.sfSymbols!.map((e) => e.name).toList(),
-      if (widget.sfSymbols != null)
-        'sfSymbolSizes': widget.sfSymbols!.map((e) => e.size).toList(),
-      if (widget.sfSymbols != null)
-        'sfSymbolColors': widget.sfSymbols!
-            .map((e) => resolveColorToArgb(e.color, context))
-            .toList(),
-      if (widget.sfSymbols != null)
-        'sfSymbolPaletteColors': widget.sfSymbols!
-            .map(
-              (e) => (e.paletteColors ?? [])
-                  .map((c) => resolveColorToArgb(c, context))
-                  .toList(),
-            )
-            .toList(),
-      if (widget.sfSymbols != null)
-        'sfSymbolRenderingModes': widget.sfSymbols!
-            .map((e) => e.mode?.name)
-            .toList(),
-      if (widget.sfSymbols != null)
-        'sfSymbolGradientEnabled': widget.sfSymbols!
-            .map((e) => e.gradient)
-            .toList(),
-    };
+      'symbols': widget.sfSymbols
+          ?.map(
+            (symbol) => symbol.encode(
+              context,
+              size: widget.iconSize,
+              color: widget.iconColor,
+              paletteColors: widget.iconPaletteColors,
+              mode: widget.iconRenderingMode,
+              gradient: widget.iconGradientEnabled,
+            ),
+          )
+          .toList(),
+    },
+    'setSelectedIndex': {'index': widget.selectedIndex},
+    'setEnabled': {'enabled': widget.enabled},
+    'setStyle': {'tint': resolveColorToArgb(widget.color, context)},
+  };
 
-    Widget platformView;
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      platformView = UiKitView(
-        viewType: viewType,
-        creationParamsCodec: const StandardMessageCodec(),
-        creationParams: creationParams,
-        onPlatformViewCreated: _onPlatformViewCreated,
-      );
-    } else {
-      platformView = AppKitView(
-        viewType: viewType,
-        creationParamsCodec: const StandardMessageCodec(),
-        creationParams: creationParams,
-        onPlatformViewCreated: _onPlatformViewCreated,
-      );
-    }
+  @override
+  Widget buildFallback(BuildContext context) {
+    // CupertinoSegmentedControl requires at least two segments.
+    if (_segmentCount < 2) return SizedBox(height: widget.height);
+    return SizedBox(
+      height: widget.height,
+      child: CupertinoSegmentedControl<int>(
+        children: {
+          for (var i = 0; i < _segmentCount; i++)
+            i: i < widget.labels.length
+                ? Text(widget.labels[i])
+                : const Icon(CupertinoIcons.circle),
+        },
+        groupValue: widget.selectedIndex,
+        onValueChanged: widget.enabled ? widget.onValueChanged : (_) {},
+      ),
+    );
+  }
 
-    if (widget.shrinkWrap) {
-      final width = _intrinsicWidth;
-      return Center(
-        child: SizedBox(
+  @override
+  Widget layoutNativeView(BuildContext context, Widget platformView) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (!widget.shrinkWrap && constraints.hasBoundedWidth) {
+          return SizedBox(height: widget.height, child: platformView);
+        }
+        // Until measured, estimate so the view never gets infinite width.
+        final view = SizedBox(
           height: widget.height,
-          width: width, // if null, stretches initially until measured
+          width: _intrinsicWidth ?? _segmentCount * 64.0,
           child: platformView,
-        ),
-      );
-    }
-
-    return SizedBox(height: widget.height, child: platformView);
+        );
+        return widget.shrinkWrap && constraints.hasBoundedWidth
+            ? Center(child: view)
+            : view;
+      },
+    );
   }
 
-  void _onPlatformViewCreated(int id) {
-    final channel = MethodChannel('CupertinoNativeSegmentedControl_$id');
-    _channel = channel;
-    channel.setMethodCallHandler(_onMethodCall);
-    _cacheCurrentProps();
-    _syncBrightnessIfNeeded();
-    _requestIntrinsicSize();
+  @override
+  void didCreateNativeView(MethodChannel channel) => _measure();
+
+  @override
+  void didSendNativeUpdates(Set<String> methods) {
+    if (methods.contains('setItems')) _measure();
   }
 
-  Future<dynamic> _onMethodCall(MethodCall call) async {
-    if (call.method == 'valueChanged') {
-      final args = call.arguments as Map?;
-      final idx = (args?['index'] as num?)?.toInt();
-      if (idx != null) {
-        widget.onValueChanged(idx);
-        _lastSelected = idx;
-      }
-    }
-    return null;
-  }
-
-  void _cacheCurrentProps() {
-    _lastSelected = widget.selectedIndex;
-    _lastEnabled = widget.enabled;
-    _lastIsDark = _isDark;
-    _lastTint = resolveColorToArgb(widget.color, context);
-  }
-
-  Future<void> _syncPropsToNativeIfNeeded() async {
-    final channel = _channel;
-    if (channel == null) return;
-
-    final tint = resolveColorToArgb(widget.color, context);
-
-    if (_lastEnabled != widget.enabled) {
-      await channel.invokeMethod('setEnabled', {'enabled': widget.enabled});
-      _lastEnabled = widget.enabled;
-    }
-    if (_lastSelected != widget.selectedIndex) {
-      await channel.invokeMethod('setSelectedIndex', {
-        'index': widget.selectedIndex,
-      });
-      _lastSelected = widget.selectedIndex;
-    }
-    if (_lastTint != tint && tint != null) {
-      await channel.invokeMethod('setStyle', {'tint': tint});
-      _lastTint = tint;
+  Future<void> _measure() async {
+    final size = await measureNativeView();
+    if (size != null && size.width > 0) {
+      setState(() => _intrinsicWidth = size.width);
     }
   }
 
-  Future<void> _requestIntrinsicSize() async {
-    final channel = _channel;
-    if (channel == null) return;
-    try {
-      final size = await channel.invokeMethod<Map>('getIntrinsicSize');
-      final w = (size?['width'] as num?)?.toDouble();
-      if (w != null && mounted) {
-        setState(() => _intrinsicWidth = w);
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _syncBrightnessIfNeeded() async {
-    final channel = _channel;
-    if (channel == null) return;
-    final isDark = _isDark;
-    final tint = resolveColorToArgb(widget.color, context);
-    if (_lastIsDark != isDark) {
-      await channel.invokeMethod('setBrightness', {'isDark': isDark});
-      _lastIsDark = isDark;
-    }
-    if (_lastTint != tint && tint != null) {
-      await channel.invokeMethod('setStyle', {'tint': tint});
-      _lastTint = tint;
+  @override
+  void handleNativeEvent(String method, Map<Object?, Object?> args) {
+    final index = (args['index'] as num?)?.toInt();
+    if (method == 'valueChanged' && index != null) {
+      recordNativeState('setSelectedIndex', {'index': index});
+      widget.onValueChanged(index);
     }
   }
 }

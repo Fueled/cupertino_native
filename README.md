@@ -26,14 +26,10 @@ Then run `flutter pub get`.
 
 Ensure your platform minimums are compatible:
 
-- iOS `platform :ios, '14.0'`
-- macOS 11.0+
+- iOS 18.0+ (`platform :ios, '18.0'` in your `ios/Podfile`)
+- macOS 12.0+ (`platform :osx, '12.0'` in your `macos/Podfile`)
 
-You will also need to install the Xcode 26 beta and use `xcode-select` to set it as your default.
-
-```bash
-sudo xcode-select -s /Applications/Xcode-beta.app
-```
+Liquid Glass styles and symbol gradients need iOS/macOS 26 at runtime and an app built with Xcode 26 or later. On older systems they fall back to the closest earlier style.
 
 ## What's in the package
 
@@ -125,7 +121,7 @@ final items = [
   const CNPopupMenuItem(label: 'Rename', icon: CNSymbol('rectangle.and.pencil.and.ellipsis', size: 18)),
 ];
 
-CNPopupMenuButton(
+CNPopupMenuButton.label(
   buttonLabel: 'Actions',
   items: items,
   onSelected: (index) {
