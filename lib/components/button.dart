@@ -24,6 +24,7 @@ class CNButton extends StatefulWidget {
     this.height = 32.0,
     this.shrinkWrap = false,
     this.style = CNButtonStyle.plain,
+    this.semanticLabel,
   }) : icon = null,
        width = null,
        round = false;
@@ -37,6 +38,7 @@ class CNButton extends StatefulWidget {
     this.tint,
     double size = 44.0,
     this.style = CNButtonStyle.glass,
+    this.semanticLabel,
   }) : label = null,
        round = true,
        width = size,
@@ -74,6 +76,12 @@ class CNButton extends StatefulWidget {
   /// Whether the icon variant (round) is used.
   final bool round;
 
+  /// Label read by VoiceOver and other assistive technologies.
+  ///
+  /// Set this for icon-only buttons, which have no text to read. When null,
+  /// the native control's default label is used (its title, if any).
+  final String? semanticLabel;
+
   /// Whether this instance is configured as the icon variant.
   bool get isIcon => icon != null;
 
@@ -104,6 +112,7 @@ class _CNButtonState extends NativeViewState<CNButton> {
       'round': widget.round,
     },
     'setEnabled': {'enabled': _isEnabled},
+    'setSemantics': {'label': widget.semanticLabel},
   };
 
   @override
@@ -122,9 +131,13 @@ class _CNButtonState extends NativeViewState<CNButton> {
             ? const EdgeInsets.all(4)
             : const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         onPressed: _isEnabled ? widget.onPressed : null,
-        child: widget.isIcon
-            ? Icon(CupertinoIcons.ellipsis, size: widget.icon?.size)
-            : Text(widget.label ?? ''),
+        child: Semantics(
+          label: widget.semanticLabel,
+          excludeSemantics: widget.semanticLabel != null,
+          child: widget.isIcon
+              ? Icon(CupertinoIcons.ellipsis, size: widget.icon?.size)
+              : Text(widget.label ?? ''),
+        ),
       ),
     );
   }

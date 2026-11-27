@@ -198,6 +198,24 @@ void main() {
       expect(view.lastArgs('setEnabled'), {'enabled': false});
     }, variant: ios);
 
+    testWidgets('sends the semantic label and clears it', (tester) async {
+      Widget button(String? semanticLabel) => app(
+        CNButton.icon(
+          icon: const CNSymbol('gear'),
+          semanticLabel: semanticLabel,
+          onPressed: () {},
+        ),
+      );
+      await tester.pumpWidget(button('Settings'));
+      await settle(tester);
+      final view = views.single('CupertinoNativeButton');
+      expect(view.creationArgs('setSemantics'), {'label': 'Settings'});
+
+      await tester.pumpWidget(button(null));
+      await settle(tester);
+      expect(view.lastArgs('setSemantics'), {'label': null});
+    }, variant: ios);
+
     testWidgets('highlights natively while pressed', (tester) async {
       await tester.pumpWidget(app(CNButton(label: 'Go', onPressed: () {})));
       await settle(tester);
@@ -247,6 +265,45 @@ void main() {
 
       await view.emit('itemSelected', {'index': 2});
       expect(selected, 2);
+    }, variant: ios);
+
+    testWidgets('every constructor sends the semantic label', (tester) async {
+      const items = [CNPopupMenuItem(label: 'One')];
+      await tester.pumpWidget(
+        app(
+          Column(
+            children: [
+              CNPopupMenuButton.icon(
+                buttonIcon: const CNSymbol('globe'),
+                items: items,
+                onSelected: (_) {},
+                semanticLabel: 'Switch site',
+              ),
+              CNPopupMenuButton.label(
+                buttonLabel: 'Menu',
+                items: items,
+                onSelected: (_) {},
+                semanticLabel: 'Menu label',
+              ),
+              CNPopupMenuButton(
+                items: items,
+                onSelected: (_) {},
+                semanticLabel: 'Child menu',
+                child: const Text('Open'),
+              ),
+            ],
+          ),
+        ),
+      );
+      await settle(tester);
+
+      expect(
+        [
+          for (final view in views.all('CupertinoNativePopupMenuButton'))
+            view.creationArgs('setSemantics')['label'],
+        ],
+        unorderedEquals(['Switch site', 'Menu label', 'Child menu']),
+      );
     }, variant: ios);
 
     testWidgets('child mode uses a transparent native button', (tester) async {

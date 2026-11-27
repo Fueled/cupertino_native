@@ -69,6 +69,7 @@ class _PopupMenuButtonDemoPageState extends State<PopupMenuButtonDemoPage> {
                     setState(() => _lastSelected = index);
                   },
                   buttonStyle: CNButtonStyle.glass,
+                  semanticLabel: 'More options',
                 ),
               ],
             ),

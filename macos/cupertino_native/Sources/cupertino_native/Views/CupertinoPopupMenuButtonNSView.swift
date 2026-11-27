@@ -39,6 +39,9 @@ final class CupertinoPopupMenuButtonNSView: NativeView {
       applyContent()
     case "setItems":
       popupMenu = makeMenu(args.argsList("items"))
+    case "setSemantics":
+      // nil restores AppKit's default label (the title).
+      button.setAccessibilityLabel(args.string("label"))
     case "setPressed":
       alphaValue = try args.required("pressed", args.bool) ? 0.7 : 1.0
     case "getIntrinsicSize":

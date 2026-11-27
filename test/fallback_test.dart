@@ -98,6 +98,60 @@ void main() {
     expect(presses, 1);
   }, variant: android);
 
+  testWidgets('button fallback is labelled and activates', (tester) async {
+    final semantics = tester.ensureSemantics();
+    var presses = 0;
+    await tester.pumpWidget(
+      app(
+        CNButton.icon(
+          icon: const CNSymbol('gear'),
+          semanticLabel: 'Settings',
+          onPressed: () => presses++,
+        ),
+      ),
+    );
+
+    tester.semantics.tap(find.semantics.byLabel('Settings'));
+    expect(presses, 1);
+    semantics.dispose();
+  }, variant: android);
+
+  testWidgets('popup menu fallbacks are labelled and open the menu', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    const items = [CNPopupMenuItem(label: 'One')];
+    await tester.pumpWidget(
+      app(
+        Column(
+          children: [
+            CNPopupMenuButton.icon(
+              buttonIcon: const CNSymbol('globe'),
+              items: items,
+              onSelected: (_) {},
+              semanticLabel: 'Switch site',
+            ),
+            CNPopupMenuButton(
+              items: items,
+              onSelected: (_) {},
+              semanticLabel: 'Child menu',
+              child: const Text('Open'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    for (final label in ['Switch site', 'Child menu']) {
+      tester.semantics.tap(find.semantics.byLabel(label));
+      await tester.pumpAndSettle();
+      expect(find.byType(CupertinoActionSheet), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+    }
+    semantics.dispose();
+  }, variant: android);
+
   testWidgets('popup menu falls back to an action sheet', (tester) async {
     int? selected;
     await tester.pumpWidget(
